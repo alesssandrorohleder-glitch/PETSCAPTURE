@@ -132,7 +132,7 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
 - Vale dos Ventos (Vento): `brisito` → `brisito_evo` (Planavento) → `brisito_evo2` (Céuzefir);
   `penugem` → `penugem_evo` (Rodopio) → `penugem_evo2` (Ciclonix)
 - Vulcão Rubro (Fogo): `carvonito` → `carvonito_evo` (Brasouriço) → `carvonito_evo2` (Vulcouriço);
-  `cabrasa` → `cabrasa_evo` (Brasacorno) → `cabrasa_evo2` (Vulcorno)
+  `cabrasa` → `cabrasa_evo` (Brasacorno) → `cabrasa_evo2` (Vulcorno), Fogo/Pedra
 - Minas de Cristal (Pedra): `seixito` → `seixito_evo` (Escavrocha) → `seixito_evo2` (Sismoto), Pedra/Terra;
   `geodito` → `geodito_evo` (Geodrusa) → `geodito_evo2` (Ametistão)
 - Híbridos (dois elementos):

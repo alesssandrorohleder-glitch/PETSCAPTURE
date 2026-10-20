@@ -49,6 +49,7 @@ interface Features {
   mole: boolean;
   amethyst: boolean;
   hybrid: boolean;
+  goat: boolean;
 }
 
 function featuresOf(sp: SpeciesData): Features {
@@ -74,6 +75,7 @@ function featuresOf(sp: SpeciesData): Features {
     mole,
     amethyst: has(/geodo|ametista/),
     hybrid: has(/híbrid/),
+    goat: has(/bode|cabrit/),
   };
 }
 
@@ -380,6 +382,44 @@ function hybridMarks(c: Ctx, el2: ElementId, x: number, y: number, r: number): v
   }
 }
 
+const LAVA = 0xff7b00;
+
+/** Chifres enrolados de carneiro (pedra com ponta de lava), desenhados na frente da cabeça. */
+function ramHorns(c: Ctx): void {
+  const { g, headX, headY, headR, k, stage } = c;
+  const R0 = headR * 0.55 + stage * 3 * k;
+  const sweep = Math.PI * (1.25 + stage * 0.4);
+  const n = 28;
+  for (const side of [-1, 1]) {
+    const cx = headX + side * headR * 0.88;
+    const cy = headY - headR * 0.3;
+    let prev: Phaser.Math.Vector2 | null = null;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const a = -2.5 + t * sweep;
+      const r = R0 * (1 - 0.62 * t);
+      const p = V(cx + side * Math.cos(a) * r, cy + Math.sin(a) * r);
+      if (prev) {
+        const w = (7 - t * 4) * k;
+        g.lineStyle(w + 2, 0x1a171c).lineBetween(prev.x, prev.y, p.x, p.y);
+        g.lineStyle(w, t > 0.82 ? LAVA : i % 4 < 2 ? 0x8d8791 : 0x6b6570).lineBetween(prev.x, prev.y, p.x, p.y);
+      }
+      prev = p;
+    }
+  }
+}
+
+/** Rachaduras de lava brilhando no corpo de basalto. */
+function lavaCracks(c: Ctx, x: number, y: number, w: number, h: number, n: number): void {
+  const { g, k } = c;
+  for (let i = 0; i < n; i++) {
+    const px = x + ((i * 0.37) % 1 - 0.5) * w;
+    const py = y + ((i * 0.61) % 1 - 0.5) * h;
+    g.lineStyle(3 * k, LAVA, 0.35).beginPath().moveTo(px, py - 5 * k).lineTo(px + 3 * k, py).lineTo(px - 1 * k, py + 4 * k).strokePath();
+    g.lineStyle(1.4 * k, 0xffd166).beginPath().moveTo(px, py - 5 * k).lineTo(px + 3 * k, py).lineTo(px - 1 * k, py + 4 * k).strokePath();
+  }
+}
+
 /** Desenha a criatura no Graphics (quadro 128×128). */
 export function drawCreature(g: G, sp: SpeciesData): void {
   const el = sp.types[0];
@@ -390,7 +430,7 @@ export function drawCreature(g: G, sp: SpeciesData): void {
   const hv = (hash(rootSpecies(sp.id)) % 1000) / 1000;
   const main0 = lineColor(ELEMENTS[el].color, hv, stage);
   // toupeira: pedra misturada com o marrom da terra
-  const main = f.mole ? mix(main0, ELEMENTS.terra.color, 0.6) : f.hybrid && el2 ? mix(main0, ELEMENTS[el2].color, el2 === 'agua' ? 0.08 : 0.2) : main0;
+  const main = f.goat ? shade(0x4a4550, 1 - stage * 0.06) : f.mole ? mix(main0, ELEMENTS.terra.color, 0.6) : f.hybrid && el2 ? mix(main0, ELEMENTS[el2].color, el2 === 'agua' ? 0.08 : 0.2) : main0;
   const c: Ctx = {
     g, k, stage, f, cx: 62, main,
     dark: shade(main, 0.6),
@@ -428,6 +468,13 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     c.headX = c.cx - 4 * k;
     c.headY = c.bodyY - c.bodyH * 0.45 - c.headR * 0.6;
     c.tail = { x: c.cx + c.bodyW * 0.62 + 12 * k, y: c.bodyY - c.bodyH * 0.5 - 18 * k };
+    if (f.goat) {
+      c.bodyH *= 0.9;
+      c.bodyY = ground - 18 * k - c.bodyH * 0.4;
+      c.headY = c.bodyY - c.bodyH * 0.5 - c.headR * 0.75;
+      c.headX = c.cx - 8 * k;
+      c.tail = { x: c.cx + c.bodyW * 0.5, y: c.bodyY - c.bodyH * 0.45 };
+    }
     if (f.mole) {
       c.bodyW *= 1.12;
       c.bodyH *= 1.05;
@@ -468,6 +515,9 @@ export function drawCreature(g: G, sp: SpeciesData): void {
   }
   if (f.mole) {
     g.fillStyle(c.dark).fillEllipse(c.tail.x, c.tail.y, 10 * k, 6 * k);
+  } else if (f.goat) {
+    g.fillStyle(0xd6d3d1).fillEllipse(c.tail.x + 3 * k, c.tail.y - 3 * k, 8 * k, 13 * k);
+    g.fillStyle(LAVA).fillCircle(c.tail.x + 5 * k, c.tail.y - 7 * k, 2 * k);
   } else if (f.body === 'quad') {
     // cauda: bolinhas que afinam até a ponta (ferrão curvo no escorpião)
     const t0 = { x: c.cx + c.bodyW * 0.42, y: c.bodyY };
@@ -508,6 +558,12 @@ export function drawCreature(g: G, sp: SpeciesData): void {
         g.fillStyle(0xf4a261).fillEllipse(x + 2 * k, ground - 1, 9 * k, 3 * k);
         return;
       }
+      if (f.goat) {
+        g.fillStyle(col).fillRoundedRect(x - 3.5 * k, c.bodyY, 7 * k, ground - c.bodyY - 3 * k, 3 * k);
+        g.fillStyle(0x1a171c).fillRoundedRect(x - 4.5 * k, ground - 6 * k, 9 * k, 6 * k, 2 * k);
+        g.fillStyle(LAVA, 0.9).fillRect(x - 3.5 * k, ground - 7 * k, 7 * k, 1.5 * k);
+        return;
+      }
       g.fillStyle(col).fillRoundedRect(x - 4.5 * k, c.bodyY, 9 * k, legH + c.bodyH * 0.3, 4 * k);
       g.fillStyle(shade(col, 0.6)).fillEllipse(x, ground - 1, 11 * k, 5 * k);
     };
@@ -520,19 +576,22 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     g.fillStyle(belly).fillEllipse(c.cx - 3 * k, c.bodyY + c.bodyH * 0.12, c.bodyW * 0.5, c.bodyH * 0.55);
     if (f.shell) shell(c);
     if (f.hybrid && el2) hybridMarks(c, el2, c.cx + c.bodyW * 0.18, c.bodyY - c.bodyH * 0.1, c.bodyW * 0.22);
-    if (f.mole) {
+    if (f.goat) {
+      lavaCracks(c, c.cx + 4 * k, c.bodyY - 2 * k, c.bodyW * 0.7, c.bodyH * 0.5, 2 + stage * 2);
+      for (let i = 0; i < stage + 1; i++) rock(g, c.cx + (i - stage / 2) * 10 * k + 6 * k, c.bodyY - c.bodyH * 0.38, k * (0.8 + stage * 0.15), i % 2 ? 0x6b6570 : 0x58525c);
+    } else if (f.mole) {
       if (stage >= 1) rockPlates(c);
     } else if (f.amethyst) amethystCluster(c, c.cx + c.bodyW * 0.12, c.bodyY - c.bodyH * 0.3, k * (0.9 + stage * 0.2), 3 + stage);
     else if (f.spikes) backSpikes(c, 7 + stage * 2);
     else if (stage >= 1) backSpikes(c, 2 + stage * 2);
-    if (stage >= 1 && !f.mole) {
+    if (stage >= 1 && !f.mole && !f.goat) {
       for (let i = 0; i < stage + 1; i++) {
         const x = c.cx + c.bodyW * (0.12 + i * 0.12);
         const y = c.bodyY + (i % 2 ? 4 : -3) * k;
         g.fillStyle(c.accent, 0.85).fillPoints([V(x, y - 3 * k), V(x + 3 * k, y), V(x, y + 3 * k), V(x - 3 * k, y)], true);
       }
     }
-    if ((el === 'pedra' || el2 === 'pedra') && !f.mole) g.lineStyle(1.5, c.dark, 0.9).beginPath().moveTo(c.cx - 8 * k, c.bodyY - 8 * k).lineTo(c.cx - 3 * k, c.bodyY).lineTo(c.cx - 7 * k, c.bodyY + 7 * k).strokePath();
+    if ((el === 'pedra' || el2 === 'pedra') && !f.mole && !f.goat) g.lineStyle(1.5, c.dark, 0.9).beginPath().moveTo(c.cx - 8 * k, c.bodyY - 8 * k).lineTo(c.cx - 3 * k, c.bodyY).lineTo(c.cx - 7 * k, c.bodyY + 7 * k).strokePath();
     if (f.body === 'quad') {
       leg(c.cx - c.bodyW * 0.18, c.main);
       leg(c.cx + c.bodyW * 0.16, c.main);
@@ -565,6 +624,11 @@ export function drawCreature(g: G, sp: SpeciesData): void {
         g.fillStyle(mix(c.main, 0xffd6a5, 0.6)).fillTriangle(bx - 5 * k, by + 3, bx + side * 8 * k, by - tall * 0.75, bx + 5 * k, by + 2);
       }
       if (el === 'fogo') flame(g, c.headX, c.headY - c.headR * 0.85, 0.6 * k + stage * 0.15);
+    } else if (f.goat) {
+      for (const side of [-1, 1]) {
+        g.fillStyle(c.dark).fillEllipse(c.headX + side * c.headR * 1.05, c.headY + c.headR * 0.05, 14 * k, 6 * k);
+        g.fillStyle(LAVA, 0.8).fillEllipse(c.headX + side * c.headR * 1.08, c.headY + c.headR * 0.08, 8 * k, 2.5 * k);
+      }
     } else if (f.mole) {
       g.fillStyle(c.dark).fillCircle(c.headX - c.headR * 0.8, c.headY - c.headR * 0.45, 4.5 * k).fillCircle(c.headX + c.headR * 0.8, c.headY - c.headR * 0.45, 4.5 * k);
       if (stage === 0) rock(g, c.headX + c.headR * 0.2, c.headY - c.headR * 0.8, k * 0.9, 0xa8aab0);
@@ -581,12 +645,22 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     else if (el === 'pedra' || f.shell) ears(c, 'pedra');
     else if (!f.tentacles) ears(c, el);
   }
-  if (f.horns) horns(c);
+  if (f.horns && !f.goat) horns(c);
   if (f.antennae && !(el === 'inseto' && f.body !== 'round')) ears(c, 'inseto');
   if (f.body !== 'round') {
     g.fillStyle(c.main).fillCircle(c.headX, c.headY, c.headR);
     g.lineStyle(2, c.dark, 0.8).strokeCircle(c.headX, c.headY, c.headR);
     g.fillStyle(mix(c.main, 0xfff1e6, 0.5)).fillEllipse(c.headX, c.headY + c.headR * 0.45, c.headR * 1.1, c.headR * 0.7);
+  }
+  if (f.goat) {
+    // focinho comprido e barbicha de fumaça
+    g.fillStyle(0x6b6570).fillEllipse(c.headX, c.headY + c.headR * 0.55, c.headR * 1.0, c.headR * 0.75);
+    g.fillStyle(0x1a171c).fillEllipse(c.headX - c.headR * 0.15, c.headY + c.headR * 0.5, 2.5 * k, 2 * k).fillEllipse(c.headX + c.headR * 0.15, c.headY + c.headR * 0.5, 2.5 * k, 2 * k);
+    const bl = (8 + stage * 6) * k;
+    g.fillStyle(0xd6d3d1, 0.95).fillTriangle(c.headX - 5 * k, c.headY + c.headR * 0.85, c.headX + 5 * k, c.headY + c.headR * 0.85, c.headX + 1 * k, c.headY + c.headR * 0.85 + bl);
+    if (stage === 2) for (let i = 0; i < 3; i++) g.fillStyle(0xd6d3d1, 0.35 - i * 0.08).fillCircle(c.headX + 4 * k + i * 4 * k, c.headY + c.headR * 0.85 + bl + i * 3 * k, (4 + i * 2) * k);
+    lavaCracks(c, c.headX, c.headY - c.headR * 0.55, c.headR * 0.6, 4 * k, 1);
+    ramHorns(c);
   }
   if (f.crown) {
     for (let i = 0; i < 5; i++) {
@@ -595,7 +669,8 @@ export function drawCreature(g: G, sp: SpeciesData): void {
       g.fillStyle(i % 2 ? 0xff8fab : 0xff4d6d).fillTriangle(x - 3 * k, c.headY - c.headR * 0.8, x, top, x + 3 * k, c.headY - c.headR * 0.8);
     }
   }
-  if (f.hybrid && el2 && f.body !== 'round') tailTip({ ...c, k: k * 0.7, stage: 0, tail: { x: c.headX - c.headR * 0.75, y: c.headY - c.headR * 0.35 } }, el2);
+  if (f.goat) { /* chifres e rachaduras já mostram fogo e pedra */ }
+  else if (f.hybrid && el2 && f.body !== 'round') tailTip({ ...c, k: k * 0.7, stage: 0, tail: { x: c.headX - c.headR * 0.75, y: c.headY - c.headR * 0.35 } }, el2);
   else if (el2 && el2 !== el) g.fillStyle(ELEMENTS[el2].color).fillCircle(c.headX, c.headY - c.headR * 0.6, 3 * k);
 
   // ---------- rosto
@@ -610,7 +685,7 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     g.fillStyle(0x10101a).fillEllipse(ex + side * 0.5, eyeY + 1.5, er * 0.7, er * 1.0 * eyH);
     g.fillStyle(0xffffff).fillCircle(ex - er * 0.3, eyeY - er * 0.4, er * 0.32).fillCircle(ex + er * 0.25, eyeY + er * 0.35, er * 0.15);
   }
-  const mouthY = eyeY + c.headR * (f.mole ? 0.72 : 0.45);
+  const mouthY = eyeY + c.headR * (f.mole ? 0.72 : f.goat ? 0.75 : 0.45);
   if (f.mole) {
     // focinho comprido com nariz de seixo
     g.fillStyle(mix(c.main, 0xfff1e6, 0.45)).fillEllipse(c.headX, eyeY + c.headR * 0.42, c.headR * 0.85, c.headR * 0.55);
