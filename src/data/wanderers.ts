@@ -84,6 +84,33 @@ export const WANDERERS: WandererDef[] = [
     win: ['As luas não mentem: você tem um grande futuro.'],
     rematch: 'As luas mudaram de fase. Quer outra batalha?',
   },
+  {
+    id: 'w_nina', map: 'vento', name: 'Pipeira Nina',
+    look: { hair: 0xffafcc, outfit: 0x48cae4, accent: 0xffffff, skin: 0xf6d5b3 },
+    home: { x: 12, y: 9 }, radius: 3,
+    team: [['brisito_evo', 12], ['penugem_evo', 13]], prize: 650,
+    intro: 'Minha pipa voou longe, mas meus pets voam mais! Vamos batalhar?',
+    win: ['Que vendaval! Você soprou meus pets para longe.'],
+    rematch: 'O vento mudou de direção. Revanche?',
+  },
+  {
+    id: 'w_bras', map: 'vulcao', name: 'Ferreiro Brás',
+    look: { hair: 0x2b2d42, outfit: 0x6f1d1b, accent: 0xffba08, skin: 0xa47148 },
+    home: { x: 16, y: 13 }, radius: 3,
+    team: [['cabrasa_evo', 16], ['carvonito_evo', 17]], prize: 1050,
+    intro: 'Forjo minhas ferramentas no calor da lava. Será que você aguenta o calor?',
+    win: ['Você é feito de aço temperado!'],
+    rematch: 'A forja está quente de novo. Revanche?',
+  },
+  {
+    id: 'w_iris', map: 'cristal', name: 'Geóloga Íris',
+    look: { hair: 0x6d597a, outfit: 0xe5989b, accent: 0xb5838d, skin: 0xf1c27d },
+    home: { x: 6, y: 10 }, radius: 3,
+    team: [['geodito_evo', 21], ['seixito_evo', 22]], prize: 1450,
+    intro: 'Estudo os cristais destas minas. Que tal uma batalha para eu estudar você?',
+    win: ['Fascinante! Sua equipe é mais dura que diamante.'],
+    rematch: 'Encontrei uma geode nova. Revanche?',
+  },
 ];
 
 export const wandererFlag = (id: string): string => `beat_${id}`;

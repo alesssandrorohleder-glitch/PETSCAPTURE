@@ -2,7 +2,7 @@
  * Elementos do jogo. Para adicionar um novo: inclua o id em ElementId,
  * os dados em ELEMENTS e as relações em src/data/typeChart.ts.
  */
-export type ElementId = 'fogo' | 'agua' | 'grama' | 'inseto' | 'eletrico' | 'terra' | 'gelo' | 'sombra';
+export type ElementId = 'fogo' | 'agua' | 'grama' | 'inseto' | 'eletrico' | 'terra' | 'gelo' | 'sombra' | 'pedra' | 'vento';
 
 export interface ElementInfo {
   name: string;
@@ -21,4 +21,6 @@ export const ELEMENTS: Record<ElementId, ElementInfo> = {
   terra: { name: 'Terra', color: 0xb08968, css: '#b08968', icon: '🪨' },
   gelo: { name: 'Gelo', color: 0x90e0ef, css: '#90e0ef', icon: '❄️' },
   sombra: { name: 'Sombra', color: 0x9d4edd, css: '#9d4edd', icon: '🌑' },
+  pedra: { name: 'Pedra', color: 0x8e9aaf, css: '#8e9aaf', icon: '🗿' },
+  vento: { name: 'Vento', color: 0x9ff0d2, css: '#9ff0d2', icon: '🌪️' },
 };

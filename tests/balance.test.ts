@@ -161,3 +161,23 @@ describe('equilíbrio da história', () => {
     });
   }
 });
+
+/** Áreas opcionais: o jogador chega com o pet inicial + 2 capturas do caminho. */
+const SIDE: [string, number, string[]][] = [
+  ['vento', 12, ['verdaki', 'conchilo']],
+  ['vulcao', 16, ['verdaki', 'conchilo', 'zumbolt']],
+  ['cristal', 21, ['verdaki', 'conchilo', 'zumbolt', 'pedrusco']],
+];
+
+describe('equilíbrio das áreas novas (Vento, Fogo, Pedra)', () => {
+  for (const [map, level, caught] of SIDE) {
+    it(`${map}: equipe típica vence a maioria (Nv ${level})`, () => {
+      const out = TRAINERS.filter((x) => x.selectable).map((t) => {
+        const team: [string, number][] = [[formAt(t.starter, level), level], ...caught.map((c) => [c, level - 2] as [string, number])];
+        return [t.starter, teamWinRate(team, map)] as const;
+      });
+      console.log(`  ${map}: ` + out.map(([n, r]) => `${n} ${(r * 100).toFixed(0)}%`).join(', '));
+      for (const [, r] of out) expect(r).toBeGreaterThan(0.75);
+    });
+  }
+});

@@ -157,6 +157,30 @@ export function treeTexture(scene: Phaser.Scene, theme: BiomeTheme): string {
         g.fillStyle(0x000000, 0.15).fillRect(w - 12, 20, 6, base - 22);
         break;
       }
+      case 'spire': {
+        // pináculo de obsidiana com veios de lava
+        const base = h - 4;
+        g.fillStyle(shade(c, 0.8)).fillTriangle(cx - 16, base, cx - 2, 6, cx + 16, base);
+        g.fillStyle(c).fillTriangle(cx - 16, base, cx - 2, 6, cx - 1, base);
+        g.fillStyle(light).fillTriangle(cx - 6, 22, cx - 2, 6, cx - 2, 30);
+        g.lineStyle(2, 0xff7b00, 0.9).beginPath().moveTo(cx + 1, 18).lineTo(cx + 5, 30).lineTo(cx + 2, 40).lineTo(cx + 7, base - 2).strokePath();
+        g.fillStyle(0xffba08, 0.8).fillCircle(cx + 5, 30, 1.5);
+        g.fillStyle(0x3d3d3d).fillEllipse(cx, base, 36, 7);
+        break;
+      }
+      case 'crystal': {
+        // cacho de cristais
+        const prism = (x: number, w: number, top: number, col: number) => {
+          g.fillStyle(shade(col, 0.75)).fillPoints([new Phaser.Math.Vector2(x - w, h - 6), new Phaser.Math.Vector2(x - w, top + w), new Phaser.Math.Vector2(x, top), new Phaser.Math.Vector2(x + w, top + w), new Phaser.Math.Vector2(x + w, h - 6)], true);
+          g.fillStyle(col).fillPoints([new Phaser.Math.Vector2(x - w, h - 6), new Phaser.Math.Vector2(x - w, top + w), new Phaser.Math.Vector2(x, top), new Phaser.Math.Vector2(x, h - 6)], true);
+          g.fillStyle(0xffffff, 0.55).fillRect(x - w + 2, top + w + 2, 2, (h - 6 - top - w) * 0.5);
+        };
+        prism(cx - 9, 6, 24, shade(c, 0.85));
+        prism(cx + 9, 6, 28, light);
+        prism(cx, 8, 8, c);
+        g.fillStyle(0x495057).fillEllipse(cx, h - 5, 36, 8);
+        break;
+      }
       case 'pillar': {
         const base = h - 4;
         g.fillStyle(dark).fillRect(cx - 14, base - 7, 28, 7);

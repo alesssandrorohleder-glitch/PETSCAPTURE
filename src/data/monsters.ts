@@ -264,6 +264,115 @@ export const SPECIES: Record<string, SpeciesData> = {
     learnset: wl([[1, 'garra_sombria'], [20, 'passo_fantasma'], [25, 'drenar_energia'], [29, 'lua_negra']]),
     catchRate: 70, xpYield: 125, shape: 'triangle',
   }),
+  // ------------------------------------------------ Vulcão Rubro, Minas de Cristal e Vale dos Ventos
+  carvonito: s({
+    id: 'carvonito', name: 'Carvonito', types: ['fogo'],
+    description: 'Ouriço pequeno de espinhos de carvão que brilham em brasa quando ele se assusta.',
+    base: { hp: 45, atk: 50, def: 55, spd: 40 }, learnset: ls(['brasa', 'bafo_quente', 'escudo_chamas', 'lava_ardente', 'avalanche', 'coracao_vulcao'], [1, 5, 9, 14, 20, 28]), evolution: { level: 10, into: 'carvonito_evo' },
+    catchRate: 120, xpYield: 60, shape: 'circle',
+  }),
+  carvonito_evo: s({
+    id: 'carvonito_evo', name: 'Brasouriço', types: ['fogo'],
+    description: 'Ouriço robusto com espinhos incandescentes que solta faíscas ao rolar.',
+    base: { hp: 62, atk: 70, def: 76, spd: 55 }, learnset: ls(['brasa', 'bafo_quente', 'escudo_chamas', 'lava_ardente', 'avalanche', 'coracao_vulcao'], [1, 5, 9, 14, 20, 28]), evolution: { level: 24, into: 'carvonito_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'circle',
+  }),
+  carvonito_evo2: s({
+    id: 'carvonito_evo2', name: 'Vulcouriço', types: ['fogo', 'pedra'],
+    description: 'Couraça de basalto e espinhos de lava: rola encosta abaixo como um meteoro.',
+    base: { hp: 78, atk: 88, def: 96, spd: 70 }, learnset: ls(['brasa', 'bafo_quente', 'escudo_chamas', 'lava_ardente', 'avalanche', 'coracao_vulcao'], [1, 5, 9, 14, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'circle',
+  }),
+  cabrasa: s({
+    id: 'cabrasa', name: 'Cabrasa', types: ['fogo'],
+    description: 'Cabritinho de pelo cinza-fumaça com chifrinhos que ardem como carvão.',
+    base: { hp: 48, atk: 58, def: 42, spd: 56 }, learnset: ls(['brasa', 'investida', 'bafo_quente', 'chifre_magma', 'lava_ardente', 'coracao_vulcao'], [1, 4, 8, 13, 20, 28]), evolution: { level: 10, into: 'cabrasa_evo' },
+    catchRate: 120, xpYield: 60, shape: 'triangle',
+  }),
+  cabrasa_evo: s({
+    id: 'cabrasa_evo', name: 'Brasacorno', types: ['fogo'],
+    description: 'Bode ágil que salta entre rochas quentes, com chifres curvos em brasa.',
+    base: { hp: 66, atk: 80, def: 56, spd: 76 }, learnset: ls(['brasa', 'investida', 'bafo_quente', 'chifre_magma', 'lava_ardente', 'coracao_vulcao'], [1, 4, 8, 13, 20, 28]), evolution: { level: 24, into: 'cabrasa_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'triangle',
+  }),
+  cabrasa_evo2: s({
+    id: 'cabrasa_evo2', name: 'Vulcorno', types: ['fogo'],
+    description: 'Bode montanhês imponente com grandes chifres de magma e barba de fumaça.',
+    base: { hp: 82, atk: 100, def: 70, spd: 94 }, learnset: ls(['brasa', 'investida', 'bafo_quente', 'chifre_magma', 'lava_ardente', 'coracao_vulcao'], [1, 4, 8, 13, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'triangle',
+  }),
+  seixito: s({
+    id: 'seixito', name: 'Seixito', types: ['pedra'],
+    description: 'Seixo vivo e redondinho, com olhos curiosos e musgo no topo.',
+    base: { hp: 50, atk: 48, def: 65, spd: 30 }, learnset: ls(['lasca_pedra', 'po_rocha', 'pele_granito', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]), evolution: { level: 10, into: 'seixito_evo' },
+    catchRate: 120, xpYield: 60, shape: 'square',
+  }),
+  seixito_evo: s({
+    id: 'seixito_evo', name: 'Pedrolho', types: ['pedra'],
+    description: 'Bloco de rocha com braços curtos e um grande olho de cristal no peito.',
+    base: { hp: 70, atk: 68, def: 90, spd: 40 }, learnset: ls(['lasca_pedra', 'po_rocha', 'pele_granito', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]), evolution: { level: 24, into: 'seixito_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'square',
+  }),
+  seixito_evo2: s({
+    id: 'seixito_evo2', name: 'Monolito', types: ['pedra', 'terra'],
+    description: 'Gigante de pedra antiga coberto de runas que brilham quando ele desperta.',
+    base: { hp: 90, atk: 88, def: 115, spd: 50 }, learnset: ls(['lasca_pedra', 'po_rocha', 'pele_granito', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'square',
+  }),
+  geodito: s({
+    id: 'geodito', name: 'Geodito', types: ['pedra'],
+    description: 'Geodo rachado que esconde cristais roxos brilhantes por dentro.',
+    base: { hp: 44, atk: 52, def: 58, spd: 42 }, learnset: ls(['lasca_pedra', 'pele_granito', 'lanca_cristal', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]), evolution: { level: 10, into: 'geodito_evo' },
+    catchRate: 120, xpYield: 60, shape: 'hexagon',
+  }),
+  geodito_evo: s({
+    id: 'geodito_evo', name: 'Geodrusa', types: ['pedra'],
+    description: 'Criatura de rocha com uma drusa de ametista nas costas.',
+    base: { hp: 60, atk: 72, def: 80, spd: 58 }, learnset: ls(['lasca_pedra', 'pele_granito', 'lanca_cristal', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]), evolution: { level: 24, into: 'geodito_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'hexagon',
+  }),
+  geodito_evo2: s({
+    id: 'geodito_evo2', name: 'Ametistão', types: ['pedra'],
+    description: 'Golem de ametista cujos cristais cantam quando o vento passa.',
+    base: { hp: 76, atk: 92, def: 100, spd: 74 }, learnset: ls(['lasca_pedra', 'pele_granito', 'lanca_cristal', 'avalanche', 'martelo_rocha', 'queda_meteoro'], [1, 5, 9, 14, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'hexagon',
+  }),
+  brisito: s({
+    id: 'brisito', name: 'Brisito', types: ['vento'],
+    description: 'Passarinho de penas fofas como nuvem que vive pegando carona no vento.',
+    base: { hp: 40, atk: 48, def: 38, spd: 66 }, learnset: ls(['brisa_cortante', 'asa_veloz', 'rajada', 'manto_nuvem', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]), evolution: { level: 10, into: 'brisito_evo' },
+    catchRate: 120, xpYield: 60, shape: 'diamond',
+  }),
+  brisito_evo: s({
+    id: 'brisito_evo', name: 'Planavento', types: ['vento'],
+    description: 'Ave de asas longas que plana por horas sem bater as asas.',
+    base: { hp: 56, atk: 66, def: 52, spd: 90 }, learnset: ls(['brisa_cortante', 'asa_veloz', 'rajada', 'manto_nuvem', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]), evolution: { level: 24, into: 'brisito_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'diamond',
+  }),
+  brisito_evo2: s({
+    id: 'brisito_evo2', name: 'Céuzefir', types: ['vento'],
+    description: 'Águia majestosa de penas-nuvem que comanda as correntes de ar.',
+    base: { hp: 72, atk: 86, def: 66, spd: 112 }, learnset: ls(['brisa_cortante', 'asa_veloz', 'rajada', 'manto_nuvem', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'diamond',
+  }),
+  penugem: s({
+    id: 'penugem', name: 'Penugem', types: ['vento'],
+    description: 'Bolinha de penugem flutuante, leve como uma semente de dente-de-leão.',
+    base: { hp: 42, atk: 44, def: 44, spd: 60 }, learnset: ls(['brisa_cortante', 'manto_nuvem', 'rajada', 'choque', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]), evolution: { level: 10, into: 'penugem_evo' },
+    catchRate: 120, xpYield: 60, shape: 'blob',
+  }),
+  penugem_evo: s({
+    id: 'penugem_evo', name: 'Rodopio', types: ['vento'],
+    description: 'Gira como um cata-vento e cria pequenos redemoinhos por onde passa.',
+    base: { hp: 58, atk: 62, def: 60, spd: 82 }, learnset: ls(['brisa_cortante', 'manto_nuvem', 'rajada', 'choque', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]), evolution: { level: 24, into: 'penugem_evo2' },
+    catchRate: 60, xpYield: 130, shape: 'blob',
+  }),
+  penugem_evo2: s({
+    id: 'penugem_evo2', name: 'Ciclonix', types: ['vento', 'eletrico'],
+    description: 'Espírito de ciclone envolto em nuvens carregadas de raios.',
+    base: { hp: 74, atk: 82, def: 76, spd: 104 }, learnset: ls(['brisa_cortante', 'manto_nuvem', 'rajada', 'choque', 'ciclone', 'furacao_celeste'], [1, 5, 9, 14, 20, 28]),
+    catchRate: 25, xpYield: 200, shape: 'blob',
+  }),
 };
 
 export const getSpecies = (id: string): SpeciesData => {

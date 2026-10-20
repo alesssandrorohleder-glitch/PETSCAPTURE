@@ -8,13 +8,15 @@ import type { ElementId } from './elements';
  */
 export const STRONG_AGAINST: Record<ElementId, ElementId[]> = {
   fogo: ['grama', 'inseto', 'gelo'],
-  agua: ['fogo', 'terra'],
-  grama: ['agua', 'terra'],
+  agua: ['fogo', 'terra', 'pedra'],
+  grama: ['agua', 'terra', 'pedra'],
   inseto: ['grama', 'sombra'],
-  eletrico: ['agua'],
-  terra: ['fogo', 'eletrico'],
-  gelo: ['grama', 'terra'],
+  eletrico: ['agua', 'vento'],
+  terra: ['fogo', 'eletrico', 'pedra'],
+  gelo: ['grama', 'terra', 'vento'],
   sombra: ['sombra'],
+  pedra: ['fogo', 'gelo', 'vento', 'inseto'],
+  vento: ['grama', 'inseto'],
 };
 
 /** Multiplicador de um golpe do tipo `move` contra um alvo de um tipo. */

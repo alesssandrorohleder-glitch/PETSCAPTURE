@@ -3,7 +3,7 @@
 RPG de navegador de captura de monstrinhos, feito com **Phaser 3 + TypeScript + Vite**.
 Funciona no computador (teclado/mouse) e no celular (toque, com direcional na tela), em até Full HD.
 
-**Conteúdo:** 5 domadores + o rival Noctis · 6 biomas e a vila · 33 espécies · batalhas por turnos com
+**Conteúdo:** 5 domadores + o rival Noctis · 10 elementos · 9 biomas e a vila · 51 espécies · batalhas por turnos com
 tipos, status, golpes supremos, XP e evolução · captura, equipe de 6, Caixa, loja · história com 3
 encontros com o Noctis, desafios dos amigos e treinadores andarilhos · salvamento automático · anúncios.
 
@@ -37,6 +37,24 @@ Para ver o direcional no PC, abra com `?pad=1` no endereço.
 
 **Resolução:** o jogo desenha na resolução da tela, até 1920×1080 (Full HD). Em telas menores ele usa menos
 pixels e fica mais leve; textos e desenhos são gerados em alta resolução, então continuam nítidos.
+
+## Mapa do mundo
+
+```
+                    Ruínas da Lua (Sombra, final)
+                           │
+Minas de Cristal (Pedra) ─ Picos Congelados (Gelo)
+                           │
+                    Cânion de Pedra (Terra) ─ Vulcão Rubro (Fogo)
+                           │
+Vale dos Ventos (Vento) ─ Planalto da Tempestade (Elétrico)
+                           │
+                    Praia e Recifes (Água)
+                           │
+                    Floresta Encantada (Grama/Inseto)
+                           │
+                    Vila Aurora
+```
 
 ## Estrutura
 
@@ -96,7 +114,7 @@ public/assets/monsters/ignis_back.png    ← "Back view" do Ignis
 **Ids dos treinadores:** `kael`, `marina`, `raijin`, `bruno`, `yuki`, `noctis`.
 NPCs usam o id deles (ex.: `overworld/anciao_down.png`, `overworld/menina_down.png`).
 Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `w_bia`, `w_davi`,
-`w_lucia`, `w_jorge`, `w_sofia`, `w_ravi` — retrato em `trainers/<id>.png` e sprites em `overworld/<id>_down.png` etc.
+`w_lucia`, `w_jorge`, `w_sofia`, `w_ravi`, `w_nina`, `w_bras`, `w_iris` — retrato em `trainers/<id>.png` e sprites em `overworld/<id>_down.png` etc.
 
 **Ids das espécies:**
 - Pets (3 formas cada: base → `_evo` no Nv 10 → `_evo2` no Nv 24):
@@ -109,9 +127,15 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
 - Planalto: `zumbolt`, `voltabico`
 - Cânion: `pedrusco`, `escorpedra`
 - Picos: `pinguelo`, `nevasco`
-- Ruínas: `sombrelo`, `corvanoite`
+- Ruínas: `sombrelo`, `corvanoite` (e `umbrel` raro)
+- Vale dos Ventos (Vento): `brisito` → `brisito_evo` (Planavento) → `brisito_evo2` (Céuzefir);
+  `penugem` → `penugem_evo` (Rodopio) → `penugem_evo2` (Ciclonix)
+- Vulcão Rubro (Fogo): `carvonito` → `carvonito_evo` (Brasouriço) → `carvonito_evo2` (Vulcouriço);
+  `cabrasa` → `cabrasa_evo` (Brasacorno) → `cabrasa_evo2` (Vulcorno)
+- Minas de Cristal (Pedra): `seixito` → `seixito_evo` (Pedrolho) → `seixito_evo2` (Monolito);
+  `geodito` → `geodito_evo` (Geodrusa) → `geodito_evo2` (Ametistão)
 
-**Tiles:** biomas `vila`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`;
+**Tiles:** biomas `vila`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`, `vento`, `vulcao`, `cristal`;
 nomes `ground`, `path`, `tallgrass`, `tree`, `water`, `rock`, `flowers`, `fence`.
 Exemplo: `public/assets/tiles/picos/tallgrass.png`. O tile `tree` é só o chão embaixo da árvore;
 a árvore em si (palmeira na praia, pinheiro nos picos, coluna nas ruínas…) é `objects/tree_<bioma>.png`,
@@ -132,10 +156,10 @@ um som sintetizado simples; músicas sem arquivo ficam em silêncio. O botão de
 | Tipo | Arquivo |
 |---|---|
 | Música do menu | `audio/music/menu.mp3` |
-| Música de cada mapa | `audio/music/vila.mp3`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas` |
+| Música de cada mapa | `audio/music/vila.mp3`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`, `vento`, `vulcao`, `cristal` |
 | Batalhas | `audio/music/battle_wild.mp3`, `audio/music/battle_trainer.mp3`, `audio/music/noctis.mp3` |
 | Evolução | `audio/music/evolution.mp3` |
-| Golpe de cada elemento | `audio/sfx/fogo.mp3`, `agua`, `eletrico`, `terra`, `gelo`, `sombra`, `grama`, `inseto` |
+| Golpe de cada elemento | `audio/sfx/fogo.mp3`, `agua`, `eletrico`, `terra`, `gelo`, `sombra`, `grama`, `inseto`, `pedra`, `vento` |
 | Outros efeitos | `audio/sfx/hit`, `faint`, `levelup`, `heal`, `capsula`, `captured`, `select`, `confirm` |
 
 Dica: músicas em loop de 1–2 min, 96–128 kbps, para o jogo carregar rápido.
@@ -171,6 +195,7 @@ automaticamente junto com os anúncios).
 - **Monstro:** `src/data/monsters.ts`
 - **História e batalhas de treinador:** `src/data/story.ts` (Noctis, amigos, gatilhos no mapa)
 - **Treinadores andarilhos:** `src/data/wanderers.ts`
+- **Elemento novo:** `src/data/elements.ts` (nome e cor) e `src/data/typeChart.ts` (contra quem é forte)
 - **Mapa:** `src/data/maps.ts` — o mapa é desenhado com texto (a legenda está no topo do arquivo).
   Rode `npm test` depois de editar: os testes avisam linhas com tamanho errado, saídas para tiles bloqueados etc.
 

@@ -47,6 +47,14 @@ const FX: Record<ElementId, ElementFx> = {
     shape: 'leaf', tints: [0x52b788, 0x74c69d, 0x2d6a4f, 0xb7e4c7], count: 30,
     impact: { speed: { min: 100, max: 260 }, gravityY: 160, scale: { start: 1.5, end: 0.6 }, rotate: { start: 0, end: 540 }, alpha: { start: 1, end: 0 }, lifespan: 900 },
   },
+  pedra: {
+    shape: 'rock', tints: [0x8e9aaf, 0x6c757d, 0xadb5bd, 0x495057], count: 26,
+    impact: { speed: { min: 140, max: 320 }, gravityY: 700, scale: { min: 0.8, max: 1.6 }, rotate: { min: 0, max: 360 }, lifespan: 650, alpha: { start: 1, end: 0.2 } },
+  },
+  vento: {
+    shape: 'smoke', tints: [0xffffff, 0x9ff0d2, 0xd8f3dc], count: 34,
+    impact: { speed: { min: 160, max: 360 }, angle: { min: 160, max: 200 }, scale: { start: 0.8, end: 2.2 }, alpha: { start: 0.7, end: 0 }, lifespan: 600, rotate: { start: 0, end: 360 } },
+  },
   inseto: {
     shape: 'leaf', tints: [0xa7c957, 0x6a994e, 0xf2e8cf], count: 30,
     impact: { speed: { min: 120, max: 280 }, gravityY: 120, scale: { start: 1.1, end: 0.3 }, rotate: { start: 0, end: -540 }, alpha: { start: 1, end: 0 }, lifespan: 750 },

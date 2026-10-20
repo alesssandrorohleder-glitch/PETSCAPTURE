@@ -25,7 +25,7 @@ export const TILES: Record<string, TileInfo> = {
   F: { name: 'fence', solid: true },
 };
 
-export type TreeStyle = 'round' | 'palm' | 'pine' | 'mesa' | 'pillar' | 'spire';
+export type TreeStyle = 'round' | 'palm' | 'pine' | 'mesa' | 'pillar' | 'spire' | 'crystal';
 
 export interface BiomeTheme {
   id: string;
@@ -139,6 +139,9 @@ export const THEMES = {
   canion: { id: 'canion', treeStyle: 'mesa', sky: 0xf4a261, ground: 0xd9925b, path: 0xe9c08f, tallgrass: 0x9c6b30, tree: 0xa0522d, water: 0x4ea8de, rock: 0x8b4a2b, flowers: 0xe9c46a },
   picos: { id: 'picos', treeStyle: 'pine', sky: 0xa9d6e5, ground: 0xeef6fb, path: 0xc9dbe6, tallgrass: 0x8ecae6, tree: 0x1d4e5f, water: 0x90e0ef, rock: 0x9aa9b4, flowers: 0xcdb4db },
   ruinas: { id: 'ruinas', treeStyle: 'pillar', sky: 0x2b1b4a, ground: 0x3d2f5a, path: 0x6b5b8a, tallgrass: 0x7b2cbf, tree: 0x5a4e7a, water: 0x240046, rock: 0x6c5f8d, flowers: 0xc77dff },
+  vento: { id: 'vento', treeStyle: 'round', sky: 0x90e0ef, ground: 0xb7e4c7, path: 0xf1faee, tallgrass: 0x74c69d, tree: 0x40916c, water: 0x8ecae6, rock: 0xadb5bd, flowers: 0xffffff },
+  vulcao: { id: 'vulcao', treeStyle: 'spire', sky: 0x9d0208, ground: 0x5c3a2e, path: 0x9c6644, tallgrass: 0xe85d04, tree: 0x22223b, water: 0xff5400, rock: 0x3d3d3d, flowers: 0xffba08 },
+  cristal: { id: 'cristal', treeStyle: 'crystal', sky: 0x1b263b, ground: 0x5c677d, path: 0x979dac, tallgrass: 0xb185db, tree: 0xc77dff, water: 0x48cae4, rock: 0x33415c, flowers: 0xe0aaff },
 } satisfies Record<string, BiomeTheme>;
 
 const VILA: MapDef = {
@@ -314,8 +317,8 @@ const PLANALTO: MapDef = {
     '#,rr,,,"""""",..,""""",,,,rr,#',
     '#,rr,,,"""""",..,""""",,,,rr,#',
     '#,,,,,,"""""",..,""""",,,,,,,#',
-    '#,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
-    '#,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
+    '.,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
+    '.,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
     '#,""""",,,,,,,..,,,,,,,""""",#',
     '#,""""",,,,r,,..,,r,,,,""""",#',
     '#,""""",,,,,,,..,,,,,,,""""",#',
@@ -331,7 +334,7 @@ const PLANALTO: MapDef = {
   buildings: [{ kind: 'heal', x: 20, y: 10, w: 4, h: 3, label: 'Posto de Cura' }],
   npcs: [trainerNpc('raijin', 10, 12, 'right', ['Sente a eletricidade no ar? Aqui os raios caem o tempo todo!', 'Pets de Terra não sentem nada dos golpes Elétricos. Pense nisso!'])],
   signs: [{ x: 13, y: 21, text: ['Planalto da Tempestade', 'Há um Posto de Cura no meio do caminho.'] }],
-  warps: [...edgeWarps('canion', 'up'), ...edgeWarps('praia', 'down')],
+  warps: [...edgeWarps('canion', 'up'), ...edgeWarps('praia', 'down'), { x: 0, y: 11, to: 'vento', tx: 28, ty: 11, facing: 'left' as Facing }, { x: 0, y: 12, to: 'vento', tx: 28, ty: 12, facing: 'left' as Facing }],
   encounters: [
     { species: 'zumbolt', min: 9, max: 12, weight: 50 },
     { species: 'voltabico', min: 10, max: 13, weight: 50 },
@@ -358,8 +361,8 @@ const CANION: MapDef = {
     '#r,,,,,,,,,rrrrrrrr,,,.,,,,,r#',
     '#r,,,,,,,,,rrrrrrrr,,,.,,,,,r#',
     '#r,,,,..............,,.,,,,,r#',
-    '#r,,,,.,,,,,,,,,,,,,,,,""""",#',
-    '#r,,,,.,,,,,,,,,,,,,,,,""""",#',
+    '#r,,,,.,,,,,,,,,,,,,,,,""""",.',
+    '#r,,,,.,,,,,,,,,,,,,,,,""""",.',
     '#r,,,,.,,,,,,,,,,,,,,,,""""",#',
     '#rrrr,.,,,rrrrrrrrrrrrrrrrrrr#',
     '#r,,,,.,,,,,,,,,,,,,,,,,,,,,r#',
@@ -373,7 +376,7 @@ const CANION: MapDef = {
   buildings: [],
   npcs: [trainerNpc('bruno', 16, 4, 'down', ['Ha! Bem-vindo ao Cânion! Aqui as pedras têm mais força que muita gente.', 'Golpes de Água e Grama amolecem até a rocha mais dura.'])],
   signs: [{ x: 13, y: 21, text: ['Cânion de Pedra', 'Siga a trilha. As paredes de rocha não deixam passar.'] }],
-  warps: [...edgeWarps('picos', 'up'), ...edgeWarps('planalto', 'down')],
+  warps: [...edgeWarps('picos', 'up'), ...edgeWarps('planalto', 'down'), { x: 29, y: 13, to: 'vulcao', tx: 1, ty: 11, facing: 'right' as Facing }, { x: 29, y: 14, to: 'vulcao', tx: 1, ty: 12, facing: 'right' as Facing }],
   encounters: [
     { species: 'pedrusco', min: 13, max: 16, weight: 50 },
     { species: 'escorpedra', min: 13, max: 17, weight: 50 },
@@ -406,8 +409,8 @@ const PICOS: MapDef = {
     '#,"""""",,,,,,..,,,,,,"""""",#',
     '#,"""""",,,,,,..,,,,,,"""""",#',
     '#,"""""",,,,,,..,,,,,,"""""",#',
-    '#,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
-    '#,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
+    '.,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
+    '.,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
     '#~~~,,,"""""",..,"""""",,,~~~#',
     '#~~~,,,"""""",..,"""""",,,~~~#',
     '#,,,,,,,,,,,,,..,,,,,,,,,,,,,#',
@@ -418,7 +421,7 @@ const PICOS: MapDef = {
   buildings: [{ kind: 'heal', x: 20, y: 6, w: 4, h: 3, label: 'Posto de Cura' }],
   npcs: [trainerNpc('yuki', 8, 12, 'right', ['Brrr... gostou da neve? Eu adoro!', 'Fogo derrete o gelo, então cuidado se seu time for todo de Gelo.', 'Lá em cima ficam as Ruínas da Lua... dizem que um domador de sombras espera por lá.'])],
   signs: [{ x: 13, y: 21, text: ['Picos Congelados', 'Há um Posto de Cura logo acima.'] }],
-  warps: [...edgeWarps('ruinas', 'up'), ...edgeWarps('canion', 'down')],
+  warps: [...edgeWarps('ruinas', 'up'), ...edgeWarps('canion', 'down'), { x: 0, y: 16, to: 'cristal', tx: 28, ty: 11, facing: 'left' as Facing }, { x: 0, y: 17, to: 'cristal', tx: 28, ty: 12, facing: 'left' as Facing }],
   encounters: [
     { species: 'pinguelo', min: 17, max: 20, weight: 50 },
     { species: 'nevasco', min: 18, max: 21, weight: 50 },
@@ -468,7 +471,142 @@ const RUINAS: MapDef = {
   rare: [{ species: 'umbrel', min: 22, max: 26 }],
 };
 
-export const MAPS: Record<string, MapDef> = { vila: VILA, floresta: FLORESTA, praia: PRAIA, planalto: PLANALTO, canion: CANION, picos: PICOS, ruinas: RUINAS };
+const VENTO: MapDef = {
+  id: 'vento',
+  name: 'Vale dos Ventos',
+  theme: THEMES.vento,
+  music: 'music/vento',
+  grid: [
+    '##############################',
+    '#,,,,,,,ff,,,,,,,,,,,,ff,,,,,#',
+    '#,""""",,,,,,,""""",,,,,"""",#',
+    '#,""""",,rr,,,""""",,rr,"""",#',
+    '#,""""",,,,,,,""""",,,,,"""",#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,,~~~~,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,~~~~~~,,,,""""",,,,"""",,#',
+    '#,,,,~~~~,,,,,""""",,,,"""",,#',
+    '#,,,,,,,,,,,,,""""",,,,"""",,#',
+    '#,,ff,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,....................',
+    '#,,,,,,,,,....................',
+    '#,""""",,,,,,,,,,,,,,,,,,,ff,#',
+    '#,""""",,rr,,,""""",,,,,,,,,,#',
+    '#,""""",,,,,,,""""",,,"""",,,#',
+    '#,,,,,,,,,,,,,""""",,,"""",,,#',
+    '#,,,,,,,ff,,,,,,,,,,,,"""",,,#',
+    '#,""""",,,,,,,,,,,,,,,,,,,,,,#',
+    '#,""""",,,,,"""""",,,,,rr,,,,#',
+    '#,,,,,,,,,,,"""""",,,,,,,,,,,#',
+    '#,,,ff,,,,,,,,,,,,,,,,,,ff,,,#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '##############################',
+  ],
+  buildings: [],
+  npcs: [],
+  signs: [{ x: 27, y: 10, text: ['Vale dos Ventos', 'Monstros de Vento planam sobre o capim. Golpes Elétricos, de Gelo e de Pedra funcionam bem aqui!'] }],
+  warps: [{ x: 29, y: 11, to: 'planalto', tx: 1, ty: 11, facing: 'right' as Facing }, { x: 29, y: 12, to: 'planalto', tx: 1, ty: 12, facing: 'right' as Facing }],
+  encounters: [
+    { species: 'brisito', min: 8, max: 10, weight: 35 },
+    { species: 'penugem', min: 8, max: 10, weight: 35 },
+    { species: 'brisito_evo', min: 11, max: 14, weight: 14 },
+    { species: 'penugem_evo', min: 11, max: 14, weight: 14 },
+    { species: 'brisito_evo2', min: 24, max: 25, weight: 1 },
+    { species: 'penugem_evo2', min: 24, max: 25, weight: 1 },
+  ],
+};
+
+const VULCAO: MapDef = {
+  id: 'vulcao',
+  name: 'Vulcão Rubro',
+  theme: THEMES.vulcao,
+  music: 'music/vulcao',
+  grid: [
+    '##############################',
+    '#,,,,,~~~~,,,,,,,,,,~~~~,,,,,#',
+    '#,"""",~~,,,"""""",,,~~,"""",#',
+    '#,"""",,,,,,"""""",,,,,,"""",#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '#,,~~~,,,,rr,,,,,,,,rr,,~~~,,#',
+    '#,~~~~~,,,,,,,""""",,,,~~~~~,#',
+    '#,,~~~,,,"""",""""",,,,,~~~,,#',
+    '#,,,,,,,,"""",,,,,,,,,,,,,,,,#',
+    '#,,"""",,"""",,,,~~~~,,,"""",#',
+    '#,,"""",,,,,,,,,~~~~~~,,"""",#',
+    '.........,,,,,,,,~~~~,,,"""",#',
+    '.........,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,..,,,,,,,,,,,,,,,,,,,,#',
+    '#,"""",..,,,rr,,,,,"""""",,,,#',
+    '#,"""",..,,,,,,,,,,"""""",,,,#',
+    '#,,,,,,..,,,,~~~,,,"""""",,,,#',
+    '#,~~,,,,,,,,~~~~~,,,,,,,,,,,,#',
+    '#,~~,,"""""",,~~~,,,,,rr,,,,,#',
+    '#,,,,"""""",,,,,,,,,,,,,,,,,,#',
+    '#,,,,"""""",,,,,"""",,,~~~,,,#',
+    '#,,,,,,,,,,,,,,,"""",,,~~~,,,#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '##############################',
+  ],
+  buildings: [],
+  npcs: [],
+  signs: [{ x: 2, y: 10, text: ['Vulcão Rubro', 'Cuidado com a lava! Monstros de Fogo vivem no capim em brasa. Use Água, Terra ou Pedra.'] }],
+  warps: [{ x: 0, y: 11, to: 'canion', tx: 28, ty: 13, facing: 'left' as Facing }, { x: 0, y: 12, to: 'canion', tx: 28, ty: 14, facing: 'left' as Facing }],
+  encounters: [
+    { species: 'carvonito', min: 12, max: 14, weight: 30 },
+    { species: 'cabrasa', min: 12, max: 14, weight: 30 },
+    { species: 'carvonito_evo', min: 15, max: 18, weight: 19 },
+    { species: 'cabrasa_evo', min: 15, max: 18, weight: 19 },
+    { species: 'carvonito_evo2', min: 24, max: 26, weight: 1 },
+    { species: 'cabrasa_evo2', min: 24, max: 26, weight: 1 },
+  ],
+};
+
+const CRISTAL: MapDef = {
+  id: 'cristal',
+  name: 'Minas de Cristal',
+  theme: THEMES.cristal,
+  music: 'music/cristal',
+  grid: [
+    '##############################',
+    '#,,,,,,,,#,,,,,,,,,#,,,,,,,,,#',
+    '#,""""",,#,"""""",,#,""""",,,#',
+    '#,""""",,#,"""""",,#,""""",,,#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '####,,,,####,,,,,,####,,,,####',
+    '#,,,,,,,,,,,,,~~~,,,,,,,,,,,,#',
+    '#,"""",,,,,,,~~~~~,,,,,,"""",#',
+    '#,"""",,rr,,,,~~~,,,,rr,"""",#',
+    '#,"""",,,,,,,,,,,,,,,,,,"""",#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,,,,.................',
+    '#,,,,,,,,,,,,.................',
+    '#,""""",,,,,,..,,,,,,,""""",,#',
+    '#,""""",,rr,,..,,rr,,,""""",,#',
+    '#,,,,,,,,,,,,..,,,,,,,,,,,,,,#',
+    '####,,,,####,..,####,,,,######',
+    '#,,,,,,,,,,,,..,,,,,,,,,,,,,,#',
+    '#,"""""",,,,,,,,,,,,,"""""",,#',
+    '#,"""""",,~~~,,,,,,,,"""""",,#',
+    '#,,,,,,,,~~~,,,,rr,,,,,,,,,,,#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,,,,,,,,,,,,,,,,,,,,#',
+    '##############################',
+  ],
+  buildings: [],
+  npcs: [],
+  signs: [{ x: 27, y: 10, text: ['Minas de Cristal', 'Monstros de Pedra se escondem entre os cristais. Água, Grama e Terra são as melhores armas.'] }],
+  warps: [{ x: 29, y: 11, to: 'picos', tx: 1, ty: 16, facing: 'right' as Facing }, { x: 29, y: 12, to: 'picos', tx: 1, ty: 17, facing: 'right' as Facing }],
+  encounters: [
+    { species: 'seixito', min: 16, max: 18, weight: 30 },
+    { species: 'geodito', min: 16, max: 18, weight: 30 },
+    { species: 'seixito_evo', min: 19, max: 23, weight: 19 },
+    { species: 'geodito_evo', min: 19, max: 23, weight: 19 },
+    { species: 'seixito_evo2', min: 25, max: 27, weight: 1 },
+    { species: 'geodito_evo2', min: 25, max: 27, weight: 1 },
+  ],
+};
+
+export const MAPS: Record<string, MapDef> = { vila: VILA, floresta: FLORESTA, praia: PRAIA, planalto: PLANALTO, canion: CANION, picos: PICOS, ruinas: RUINAS, vento: VENTO, vulcao: VULCAO, cristal: CRISTAL };
 
 export const getMap = (id: string): MapDef => {
   const m = MAPS[id];

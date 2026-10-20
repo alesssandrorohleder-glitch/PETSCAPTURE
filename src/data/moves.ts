@@ -99,6 +99,29 @@ export const MOVES: Record<string, MoveData> = {
 
   absorver: m({ id: 'absorver', name: 'Absorver', type: 'grama', power: 35, accuracy: 100, description: 'Suga a energia do alvo e recupera vida.', effects: [{ kind: 'drain', fraction: 0.5 }] }),
 
+  // ------------------------------------------------ Fogo (selvagens do Vulcão)
+  brasa: m({ id: 'brasa', name: 'Brasa', type: 'fogo', power: 35, accuracy: 100, description: 'Atira uma brasa incandescente.' }),
+  bafo_quente: m({ id: 'bafo_quente', name: 'Bafo Quente', type: 'fogo', power: 50, accuracy: 100, description: 'Um sopro de ar escaldante. Pode baixar a precisão.', effects: [{ kind: 'stat', stat: 'acc', stages: -1, target: 'enemy', chance: 0.3 }] }),
+  chifre_magma: m({ id: 'chifre_magma', name: 'Chifre de Magma', type: 'fogo', power: 70, accuracy: 95, critRate: 0.2, description: 'Investida com chifres em brasa. Chance alta de crítico.' }),
+  lava_ardente: m({ id: 'lava_ardente', name: 'Lava Ardente', type: 'fogo', power: 85, accuracy: 90, description: 'Uma onda de lava. Pode atordoar.', effects: [{ kind: 'stun', chance: 0.2 }] }),
+  coracao_vulcao: m({ id: 'coracao_vulcao', name: 'Coração do Vulcão', type: 'fogo', power: 140, accuracy: 100, supreme: true, description: 'SUPREMO: o vulcão inteiro entra em erupção.' }),
+
+  // ------------------------------------------------ Pedra
+  lasca_pedra: m({ id: 'lasca_pedra', name: 'Lasca de Pedra', type: 'pedra', power: 40, accuracy: 100, description: 'Atira lascas afiadas de rocha.' }),
+  po_rocha: m({ id: 'po_rocha', name: 'Pó de Rocha', type: 'pedra', power: 0, accuracy: 95, description: 'Uma nuvem de poeira: o alvo erra mais.', effects: [{ kind: 'stat', stat: 'acc', stages: -1, target: 'enemy' }] }),
+  pele_granito: m({ id: 'pele_granito', name: 'Pele de Granito', type: 'pedra', power: 0, accuracy: 100, description: 'Endurece o corpo. Aumenta muito a defesa.', effects: [{ kind: 'stat', stat: 'def', stages: 2, target: 'self' }] }),
+  avalanche: m({ id: 'avalanche', name: 'Avalanche Rochosa', type: 'pedra', power: 75, accuracy: 90, description: 'Rochas desabam sobre o alvo. Pode atordoar.', effects: [{ kind: 'stun', chance: 0.25 }] }),
+  martelo_rocha: m({ id: 'martelo_rocha', name: 'Martelo de Rocha', type: 'pedra', power: 95, accuracy: 85, description: 'Um golpe esmagador de pedra maciça.' }),
+  queda_meteoro: m({ id: 'queda_meteoro', name: 'Queda de Meteoro', type: 'pedra', power: 140, accuracy: 100, supreme: true, description: 'SUPREMO: um meteoro despenca do céu.' }),
+
+  // ------------------------------------------------ Vento
+  brisa_cortante: m({ id: 'brisa_cortante', name: 'Brisa Cortante', type: 'vento', power: 40, accuracy: 100, description: 'Uma lâmina de vento.' }),
+  asa_veloz: m({ id: 'asa_veloz', name: 'Asa Veloz', type: 'vento', power: 45, accuracy: 100, priority: 1, description: 'Sempre ataca primeiro.' }),
+  rajada: m({ id: 'rajada', name: 'Rajada', type: 'vento', power: 60, accuracy: 95, description: 'Uma rajada forte. Reduz a velocidade do alvo.', effects: [{ kind: 'stat', stat: 'spd', stages: -1, target: 'enemy', chance: 0.3 }] }),
+  manto_nuvem: m({ id: 'manto_nuvem', name: 'Manto de Nuvem', type: 'vento', power: 0, accuracy: 100, description: 'Some entre as nuvens e esquiva do próximo golpe.', effects: [{ kind: 'evade' }] }),
+  ciclone: m({ id: 'ciclone', name: 'Ciclone', type: 'vento', power: 90, accuracy: 85, description: 'Um ciclone violento. Pode atordoar.', effects: [{ kind: 'stun', chance: 0.2 }] }),
+  furacao_celeste: m({ id: 'furacao_celeste', name: 'Furacão Celeste', type: 'vento', power: 140, accuracy: 100, supreme: true, description: 'SUPREMO: um furacão desce dos céus.' }),
+
   // ------------------------------------------------ Genérico
   investida: m({ id: 'investida', name: 'Investida', type: 'terra', power: 35, accuracy: 100, description: 'Avança contra o alvo.' }),
 };

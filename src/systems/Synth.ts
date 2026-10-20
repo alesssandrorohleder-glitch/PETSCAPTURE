@@ -49,6 +49,8 @@ const SOUNDS: Record<string, (c: AudioContext, o: AudioNode) => void> = {
   'sfx/sombra': (c, o) => tone(c, o, 'sawtooth', 220, 60, 0.5, 0.08),
   'sfx/grama': (c, o) => [880, 1046, 1318].forEach((f, i) => tone(c, o, 'triangle', f, f * 1.05, 0.08, 0.07, i * 0.05)),
   'sfx/inseto': (c, o) => [0, 0.05, 0.1, 0.15].forEach((d) => tone(c, o, 'square', 1200, 900, 0.04, 0.04, d)),
+  'sfx/pedra': (c, o) => (noise(c, o, 0.25, 600, 0.25), tone(c, o, 'square', 160, 70, 0.2, 0.08)),
+  'sfx/vento': (c, o) => noise(c, o, 0.6, 2600, 0.12),
   'sfx/capsula': (c, o) => tone(c, o, 'triangle', 400, 1200, 0.3, 0.1),
   'sfx/captured': (c, o) => [523, 659, 784, 1046].forEach((f, i) => tone(c, o, 'square', f, f, 0.1, 0.06, i * 0.09)),
   'sfx/levelup': (c, o) => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(c, o, 'triangle', f, f, 0.12, 0.08, i * 0.08)),
