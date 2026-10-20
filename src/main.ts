@@ -17,15 +17,18 @@ import { GalleryScene } from './scenes/GalleryScene';
 import { GameState } from './systems/GameState';
 import { createMonster } from './systems/Monster';
 import { SaveManager } from './systems/SaveManager';
+import { urlParam } from './systems/UrlFlags';
 import { AdManager } from './systems/AdManager';
+import { CloudSave } from './systems/CloudSave';
+import { GamePause } from './systems/GamePause';
+import { openAccountPanel } from './ui/AccountPanel';
 import { Settings } from './systems/Settings';
 import { showConsentBanner } from './ui/ConsentBanner';
 
 // ?cover=1 abre só a arte de capa (usada por scripts/cover.mjs)
-const params = new URLSearchParams(window.location.search);
-const coverMode = params.get('cover') === '1';
+const coverMode = urlParam('cover') === '1';
 // ?gallery=1 abre a galeria com todas as espécies
-const galleryMode = params.get('gallery') === '1';
+const galleryMode = urlParam('gallery') === '1';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -69,10 +72,16 @@ setInterval(() => {
 }, 1000);
 
 // Anúncios: pausa som e controles enquanto um anúncio aparece; aviso de cookies na 1ª visita.
-Object.assign(window, { __ads: AdManager }); // para testes
-AdManager.init((paused) => {
+Object.assign(window, { __ads: AdManager, __cloud: CloudSave }); // para testes
+// anúncios e janela de conta pausam som e controles do jogo
+GamePause.init((paused) => {
   game.sound.mute = paused || !Settings.get().soundOn;
   game.input.enabled = !paused;
   if (game.input.keyboard) game.input.keyboard.enabled = !paused;
 });
+AdManager.init((paused) => GamePause.set('ad', paused));
+// login e salvamento online (só se configurado — ver src/online.config.ts)
+CloudSave.onRecovery(() => openAccountPanel('recovery'));
+void CloudSave.init();
+window.addEventListener('pagehide', () => CloudSave.flushOnExit());
 if (!coverMode && !galleryMode) showConsentBanner();

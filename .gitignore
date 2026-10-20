@@ -3,3 +3,6 @@ dist
 screenshots
 *.log
 *.zip
+.env
+.env.*
+!.env.example

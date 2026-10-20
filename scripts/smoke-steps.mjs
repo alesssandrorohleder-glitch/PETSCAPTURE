@@ -400,6 +400,54 @@ export default async function ({ page, press, wait, shot, expectScene, mobile, p
   // anúncio bloqueado/indisponível não trava
   const blocked = await page.evaluate(async () => { window.__ads.mode = 'live'; const r = await window.__ads.rewarded('x'); window.__ads.mode = 'simulated'; return r; });
   assert(blocked === 'unavailable', 'sem script do Google, o recompensado responde "indisponível" e o jogo segue');
+
+  // ---------------- Login e salvamento online (servidor simulado)
+  const saved0 = await page.evaluate(() => { const s = window.__state.get(); return { trainer: s.trainerId, money: s.money }; });
+  await page.evaluate(() => { window.__state.get().money = 7777; window.dispatchEvent(new Event('pagehide')); localStorage.removeItem('elementais.mockcloud'); });
+  await page.goto(`http://localhost:${port}/?scale=1&ads=off&cloud=mock`);
+  await page.waitForFunction(() => window.__game?.scene.isActive('Menu'), null, { timeout: 15000 });
+  await wait(800);
+  await page.evaluate(() => window.__game.scene.getScene('Menu').openAccount());
+  await page.waitForSelector('.acct');
+  await page.click('.acct [data-act="signup"]');
+  await page.fill('#acct-name', 'Tester');
+  await page.fill('#acct-email', 'tester@exemplo.com');
+  await page.fill('#acct-pass', 'segredo123');
+  await shot('60-signup');
+  await page.click('.acct button[type="submit"]');
+  await page.waitForSelector('.acct__user', { timeout: 5000 });
+  await shot('61-conta');
+  const cloudMoney = await page.evaluate(() => JSON.parse(localStorage.getItem('elementais.mockcloud')).accounts[0].save?.state.money);
+  assert(cloudMoney === 7777, `criar conta enviou o progresso para a nuvem (moedas ${cloudMoney})`);
+  await page.click('.acct [data-act="close"]');
+  await wait(400);
+  const label = await page.evaluate(() => window.__game.scene.getScene('Menu').menu.items.map((i) => i.label).join(' | '));
+  assert(label.includes('Conta: Tester'), `menu mostra a conta conectada (${label})`);
+  // sair e simular outro aparelho (sem save local)
+  await page.evaluate(() => window.__game.scene.getScene('Menu').openAccount());
+  await page.click('.acct [data-act="signout"]');
+  await page.waitForSelector('.acct form[data-form="login"]');
+  await page.evaluate(() => { localStorage.removeItem('elementais.save'); localStorage.removeItem('elementais.cloudsync'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__game?.scene.isActive('Menu'), null, { timeout: 15000 });
+  await wait(800);
+  const noSave = await page.evaluate(() => window.__game.scene.getScene('Menu').menu.items[0].disabled);
+  assert(noSave, 'no "outro aparelho", Continuar começa desativado');
+  await page.evaluate(() => window.__game.scene.getScene('Menu').openAccount());
+  await page.fill('#acct-email', 'tester@exemplo.com');
+  await page.fill('#acct-pass', 'senha-errada');
+  await page.click('.acct button[type="submit"]');
+  await page.waitForSelector('.acct__msg--err');
+  assert((await page.textContent('.acct__msg--err')).includes('incorretos'), 'senha errada mostra mensagem clara');
+  await page.fill('#acct-pass', 'segredo123');
+  await page.click('.acct button[type="submit"]');
+  await page.waitForSelector('.acct__user', { timeout: 5000 });
+  await page.click('.acct [data-act="close"]');
+  await wait(500);
+  await press('Enter'); // Continuar
+  await expectScene('World');
+  const restored = await page.evaluate(() => ({ trainer: window.__state.get().trainerId, money: window.__state.get().money }));
+  assert(restored.trainer === saved0.trainer && restored.money === 7777, `progresso baixado da nuvem em outro aparelho (${JSON.stringify(restored)})`);
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

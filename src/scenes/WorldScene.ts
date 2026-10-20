@@ -8,6 +8,7 @@ import { GameState, type PlayerState } from '../systems/GameState';
 import { createMonster } from '../systems/Monster';
 import { rollEncounter } from '../systems/Encounters';
 import { SaveManager } from '../systems/SaveManager';
+import { CloudSave } from '../systems/CloudSave';
 import { toast } from '../ui/Overlay';
 import { AdManager } from '../systems/AdManager';
 import { watchForCoins } from '../systems/Rewards';
@@ -561,7 +562,12 @@ export class WorldScene extends BaseScene {
           label: 'Salvar',
           onSelect: () => {
             this.toggleMenu();
-            toast(this, SaveManager.save() ? '✓ Jogo salvo' : 'Não foi possível salvar neste navegador');
+            const local = SaveManager.save();
+            if (!CloudSave.user) {
+              toast(this, local ? '✓ Jogo salvo' : 'Não foi possível salvar neste navegador');
+              return;
+            }
+            void CloudSave.uploadNow().then((online) => toast(this, online ? '✓ Jogo salvo (online)' : '✓ Salvo no aparelho. Sem conexão: enviaremos depois.'));
           },
         },
         ...(AdManager.enabled

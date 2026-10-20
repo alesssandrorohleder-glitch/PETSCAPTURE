@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE } from '../config';
 import { makeText } from './text';
+import { urlParam } from '../systems/UrlFlags';
 import type { Facing } from '../data/maps';
 
 /** Direcional + botões A/B na tela, para celular. Fica fixo na câmera. */
@@ -11,7 +12,7 @@ export class VirtualPad extends Phaser.Events.EventEmitter {
 
   /** Mostrar o pad? Touch, ou ?pad=1 na URL para testar no PC. */
   static wanted(scene: Phaser.Scene): boolean {
-    const forced = new URLSearchParams(window.location.search).get('pad');
+    const forced = urlParam('pad');
     if (forced === '0') return false;
     return forced === '1' || scene.sys.game.device.input.touch;
   }

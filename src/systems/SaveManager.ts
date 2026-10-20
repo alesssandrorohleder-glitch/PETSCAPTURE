@@ -17,7 +17,7 @@ export interface SaveSummary {
   savedAt: number;
 }
 
-interface SaveFile {
+export interface SaveFile {
   version: number;
   savedAt: number;
   state: PlayerState;
@@ -83,9 +83,26 @@ export const SaveManager = {
     return SaveManager.summary() !== null;
   },
 
+  /** Avisado a cada salvamento local (o salvamento online se inscreve aqui). */
+  onSaved: null as ((file: SaveFile) => void) | null,
+
   save(): boolean {
     if (!GameState.has()) return false;
     const file: SaveFile = { version: STATE_VERSION, savedAt: Date.now(), state: GameState.get() };
+    const ok = Storage.set(SAVE_KEY, file);
+    SaveManager.onSaved?.(file);
+    return ok;
+  },
+
+  /** O arquivo salvo neste aparelho (ou null). */
+  localFile(): SaveFile | null {
+    const file = Storage.get<SaveFile | null>(SAVE_KEY, null);
+    return file && sanitize(file.state) ? file : null;
+  },
+
+  /** Substitui o save deste aparelho (ex.: progresso baixado da nuvem). */
+  writeLocal(file: SaveFile): boolean {
+    if (!sanitize(file.state)) return false;
     return Storage.set(SAVE_KEY, file);
   },
 
@@ -98,8 +115,7 @@ export const SaveManager = {
     return true;
   },
 
-  summary(): SaveSummary | null {
-    const file = Storage.get<SaveFile | null>(SAVE_KEY, null);
+  summary(file: SaveFile | null = Storage.get<SaveFile | null>(SAVE_KEY, null)): SaveSummary | null {
     const st = file ? sanitize(file.state) : null;
     if (!file || !st) return null;
     return { trainerId: st.trainerId, mapId: st.mapId, playSeconds: st.playSeconds, partyLevels: st.party.map((m) => m.level), savedAt: file.savedAt };

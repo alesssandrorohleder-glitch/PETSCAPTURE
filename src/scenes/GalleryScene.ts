@@ -4,6 +4,7 @@ import { ELEMENTS } from '../data/elements';
 import { SPECIES } from '../data/monsters';
 import { fitInto, monsterTexture } from '../systems/Placeholders';
 import { makeText } from '../ui/text';
+import { urlParam } from '../systems/UrlFlags';
 import { fitCamera } from './BaseScene';
 
 /**
@@ -25,7 +26,7 @@ export class GalleryScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-LEFT', () => this.show(this.page - 1));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.show(this.page + (p.x < this.scale.width / 2 ? -1 : 1)));
     // começa no ?page=N (útil para prints)
-    this.show(Number(new URLSearchParams(window.location.search).get('page')) || 0);
+    this.show(Number(urlParam('page')) || 0);
   }
 
   private show(page: number): void {

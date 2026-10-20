@@ -4,13 +4,15 @@
  * janelas menores ele desenha menos pixels e fica mais leve. Texturas geradas e
  * textos são sempre criados em 2x, para ficarem nítidos.
  */
+import { urlParam } from './systems/UrlFlags';
+
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
 export const MAX_RENDER_SCALE = 2; // 1920×1080
 
 function pickRenderScale(): number {
   if (typeof window === 'undefined') return MAX_RENDER_SCALE;
-  const forced = Number(new URLSearchParams(window.location.search).get('scale'));
+  const forced = Number(urlParam('scale'));
   const clamp = (v: number) => Math.min(MAX_RENDER_SCALE, Math.max(1, v));
   if (forced) return clamp(forced);
   const dpr = window.devicePixelRatio || 1;

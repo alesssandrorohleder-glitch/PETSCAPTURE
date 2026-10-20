@@ -190,6 +190,36 @@ com seu nome e e-mail. Para visitantes do Espaço Econômico Europeu/Reino Unido
 consentimento certificada: ative a **mensagem de GDPR em AdSense → Privacidade e mensagens** (ela aparece
 automaticamente junto com os anúncios).
 
+## Login e salvamento online (opcional)
+
+Cada jogador pode criar uma conta (e-mail e senha, ou Google) e o progresso fica salvo na nuvem — dá para
+continuar em outro celular/computador. Sem configurar nada, o jogo funciona só com o save local, e a opção
+de conta não aparece no menu. O serviço usado é o [Supabase](https://supabase.com) (plano grátis).
+
+1. Crie uma conta no Supabase e um **New project** (anote a senha do banco; região: São Paulo).
+2. Abra **SQL Editor → New query**, cole todo o conteúdo de `supabase/schema.sql` e clique **Run**.
+   Isso cria a tabela `saves` com segurança (RLS): cada jogador só lê e grava o próprio progresso.
+3. Em **Project Settings → API** (ou **API Keys**), copie a **Project URL** e a chave **anon / publishable**.
+   ⚠️ **Nunca** use a chave `service_role` / `secret` no jogo — ela dá acesso total ao banco.
+4. Na Vercel: **Settings → Environment Variables**, crie
+   `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com esses valores e faça um novo deploy.
+   (No seu computador: copie `.env.example` para `.env` e preencha.)
+5. No Supabase, **Authentication → URL Configuration**: em **Site URL** coloque o endereço do jogo
+   (ex.: `https://seudominio.com.br`) e adicione o mesmo em **Redirect URLs**. É para onde vão os links de
+   confirmação de e-mail e de "esqueci a senha".
+6. Opcional: em **Authentication → Providers → Email**, desligue **Confirm email** se quiser que o jogador
+   entre sem confirmar o e-mail (o plano grátis envia poucos e-mails por hora; para muitos jogadores,
+   configure um SMTP próprio em **Authentication → Emails**).
+7. Opcional — **Entrar com Google**: ative o provedor Google no Supabase (precisa criar um OAuth Client no
+   Google Cloud Console) e crie a variável `VITE_GOOGLE_LOGIN=true`.
+
+Como funciona no jogo: menu inicial → **Entrar / Criar conta**. Ao entrar, o progresso local é enviado; se a
+nuvem tiver um progresso diferente, o jogo pergunta qual manter. Depois disso, cada salvamento automático
+também vai para a nuvem (no máximo a cada 15 s) e "Salvar" no menu de pausa envia na hora. Na conta dá para
+sair, trocar a senha e excluir a conta (apaga o progresso online).
+
+Testar sem Supabase: abra o jogo com `?cloud=mock` (ou `#cloud-mock`) — usa uma "nuvem" falsa no navegador.
+
 ## Como adicionar conteúdo
 
 - **Treinador:** `src/data/trainers.ts`

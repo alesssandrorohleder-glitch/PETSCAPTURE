@@ -1,5 +1,6 @@
 import { ADS, EXAMPLE_PUBLISHER_ID, type AdMode } from '../ads.config';
 import { Storage } from './Storage';
+import { urlParam } from './UrlFlags';
 
 /**
  * Anúncios via Google H5 Games Ads (Ad Placement API do AdSense para jogos).
@@ -59,7 +60,7 @@ class AdManagerImpl {
   /** `pauseHook(true)` deve silenciar o jogo e bloquear os controles enquanto o anúncio aparece. */
   init(muteHook: (paused: boolean) => void): void {
     this.muteHook = muteHook;
-    const param = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ads') : null;
+    const param = urlParam('ads');
     this.mode = resolveMode(ADS.mode, ADS.publisherId, param);
     const c = this.consent();
     if (c) this.loadScript(c);

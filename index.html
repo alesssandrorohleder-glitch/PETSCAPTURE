@@ -55,6 +55,37 @@
         .rotate button { font: inherit; border: 0; background: transparent; color: #ffd166; cursor: pointer; padding: 4px 8px; }
       }
       .rotate[hidden] { display: none !important; }
+      /* janela de conta (login e salvamento online) */
+      .acct { position: fixed; inset: 0; z-index: 25; display: flex; align-items: center; justify-content: center; background: #000a;
+        padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+        font: 15px/1.45 "Trebuchet MS", "Segoe UI", sans-serif; color: #f4f1ff; overflow-y: auto; }
+      .acct__box { position: relative; width: min(420px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; background: #231d45; border: 2px solid #8c7cf0; border-radius: 14px; padding: 20px 20px 16px; box-shadow: 0 10px 40px #000a; }
+      .acct h2 { margin: 0 0 6px; color: #ffd166; font-size: 22px; }
+      .acct__lead { margin: 0 0 12px; color: #c9c2ee; }
+      .acct form { display: flex; flex-direction: column; gap: 6px; }
+      .acct label { font-size: 13px; color: #c9c2ee; margin-top: 4px; }
+      .acct input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 2px solid #4a3f86; background: #14112b; color: #f4f1ff; }
+      .acct input:focus { outline: none; border-color: #ffd166; }
+      .acct button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 2px solid #8c7cf0; background: #332a63; color: #f4f1ff; cursor: pointer; }
+      .acct button:focus-visible { outline: 3px solid #ffd166; outline-offset: 1px; }
+      .acct button:disabled { opacity: 0.6; cursor: progress; }
+      .acct button.primary { background: #8c7cf0; color: #14112b; font-weight: bold; margin-top: 8px; }
+      .acct button.danger { border-color: #ff6b6b; color: #ff9b9b; background: transparent; }
+      .acct button.link { border: 0; background: none; padding: 2px; color: #ffd166; text-decoration: underline; }
+      .acct__close { position: absolute; top: 10px; right: 10px; padding: 4px 10px !important; }
+      .acct__links { text-align: center; margin: 12px 0 0; color: #c9c2ee; }
+      .acct__fine { font-size: 12px; color: #a79fcf; text-align: center; margin: 8px 0 0; }
+      .acct__fine a { color: #ffd166; }
+      .acct__msg { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #1f3b2f; color: #b7f5c8; }
+      .acct__msg--err { background: #4a1f2a; color: #ffc2c2; }
+      .acct__col { display: flex; flex-direction: column; gap: 8px; }
+      .acct__user { margin: 0 0 8px; }
+      .acct__google { width: 100%; background: #fff !important; color: #1f1f1f !important; border-color: #fff !important; font-weight: bold; }
+      .acct__or { text-align: center; color: #a79fcf; margin: 8px 0 2px; font-size: 13px; }
+      .acct__choices { display: grid; gap: 10px; }
+      .acct__choice { text-align: left; display: flex; flex-direction: column; gap: 4px; }
+      .acct__choice:hover { border-color: #ffd166; }
+      .acct__tag { font-weight: bold; color: #ffd166; }
       /* aviso de cookies */
       .consent { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(720px, calc(100% - 24px)); box-sizing: border-box;
         background: #231d45; color: #f4f1ff; border: 2px solid #8c7cf0; border-radius: 12px; padding: 14px 16px; font: 14px/1.45 "Trebuchet MS", "Segoe UI", sans-serif; z-index: 20; box-shadow: 0 8px 30px #0008; }
