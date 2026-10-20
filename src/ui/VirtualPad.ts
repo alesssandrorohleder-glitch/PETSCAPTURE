@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE } from '../config';
+import { makeText } from './text';
 import type { Facing } from '../data/maps';
 
 /** Direcional + botões A/B na tela, para celular. Fica fixo na câmera. */
@@ -34,8 +35,9 @@ export class VirtualPad extends Phaser.Events.EventEmitter {
     const zone = scene.add.zone(cx, cy, 200, 200).setInteractive();
 
     const update = (p: Phaser.Input.Pointer) => {
-      const dx = p.x - cx;
-      const dy = p.y - cy;
+      // p.x/p.y estão em pixels do canvas (Full HD); o pad usa coordenadas de layout
+      const dx = p.x / RENDER_SCALE - cx;
+      const dy = p.y / RENDER_SCALE - cy;
       if (Math.hypot(dx, dy) < 14) {
         this.dir = null;
       } else if (Math.abs(dx) > Math.abs(dy)) {
@@ -60,7 +62,7 @@ export class VirtualPad extends Phaser.Events.EventEmitter {
 
     const button = (x: number, y: number, label: string, color: number, event: string) => {
       const c = scene.add.circle(x, y, 38, color, 0.55).setStrokeStyle(3, 0xffffff, 0.5).setInteractive();
-      const t = scene.add.text(x, y, label, { fontFamily: FONT, fontSize: '26px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+      const t = makeText(scene, x, y, label, 26, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5);
       c.on('pointerdown', () => {
         c.setScale(0.9);
         this.emit(event);
@@ -77,7 +79,7 @@ export class VirtualPad extends Phaser.Events.EventEmitter {
       ...button(GAME_WIDTH - 80, GAME_HEIGHT - 120, 'A', 0x2a9d8f, 'action'),
       ...button(GAME_WIDTH - 170, GAME_HEIGHT - 60, 'B', 0xe76f51, 'cancel'),
     ];
-    for (const o of this.objects) (o as unknown as Phaser.GameObjects.Components.ScrollFactor & Phaser.GameObjects.Components.Depth).setScrollFactor(0).setDepth(depth);
+    for (const o of this.objects) (o as unknown as Phaser.GameObjects.Components.Depth).setDepth(depth);
   }
 
   setVisible(v: boolean): void {

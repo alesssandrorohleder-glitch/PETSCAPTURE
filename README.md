@@ -47,9 +47,13 @@ Basta colocar o arquivo com o **nome exato** na pasta indicada e recarregar
 | Treinador no mapa — lado | `public/assets/overworld/<id>_side.png` | ~64×96, **olhando para a DIREITA** (o jogo espelha para a esquerda) |
 | Monstro — frente (inimigo, menus) | `public/assets/monsters/<espécie>.png` | ~256×256 |
 | Monstro — costas (seu pet na batalha) | `public/assets/monsters/<espécie>_back.png` | ~256×256 (opcional: sem ela, a frente é espelhada) |
-| Tiles do mapa | `public/assets/tiles/<bioma>/<tile>.png` | 32×32 |
-| Prédios | `public/assets/buildings/<tipo>.png` | heal/shop 160×128, house 128×96 |
-| Placa | `public/assets/objects/sign.png` | 32×32 |
+| Tiles do mapa | `public/assets/tiles/<bioma>/<tile>.png` | 64×64 (exibido em 32×32 de layout) |
+| Árvore/obstáculo alto do bioma | `public/assets/objects/tree_<bioma>.png` | 88×120, base no rodapé da imagem |
+| Prédios | `public/assets/buildings/<tipo>.png` | heal/shop 320×256, house 256×192 |
+| Placa | `public/assets/objects/sign.png` | 64×64 |
+
+O jogo roda em **Full HD (1920×1080)**. O layout interno usa 960×540 com zoom 2, por isso os
+tamanhos acima são o dobro das medidas "de layout" — use imagens nesse tamanho (ou maiores) para ficarem nítidas.
 
 Se você tiver só uma imagem do personagem para o mapa, use `overworld/<id>.png` (será espelhada ao andar para a esquerda).
 
@@ -77,8 +81,9 @@ NPCs usam o id deles (ex.: `overworld/anciao_down.png`, `overworld/menina_down.p
 
 **Tiles:** biomas `vila`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`;
 nomes `ground`, `path`, `tallgrass`, `tree`, `water`, `rock`, `flowers`, `fence`.
-Exemplo: `public/assets/tiles/picos/tallgrass.png`. (Em cada bioma, `tree` é o obstáculo:
-palmeira na praia, pinheiro nos picos, coluna nas ruínas…)
+Exemplo: `public/assets/tiles/picos/tallgrass.png`. O tile `tree` é só o chão embaixo da árvore;
+a árvore em si (palmeira na praia, pinheiro nos picos, coluna nas ruínas…) é `objects/tree_<bioma>.png`,
+mais alta que um tile para o personagem poder passar "atrás" da copa.
 
 **Prédios:** `heal` (Centro/Posto de Cura), `shop` (Loja), `house` (casa).
 

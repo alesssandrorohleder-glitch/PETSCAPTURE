@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES, TILE, UI } from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, SCENES, TILE, UI } from '../config';
 import { ENCOUNTER_RATE, getMap, TILES, type BuildingDef, type Facing, type MapDef, type NpcDef, type WarpDef } from '../data/maps';
 import { getTrainer, TRAINERS, type TrainerData } from '../data/trainers';
 import { AudioManager } from '../systems/AudioManager';
@@ -8,12 +8,12 @@ import { GameState, type PlayerState } from '../systems/GameState';
 import { createMonster } from '../systems/Monster';
 import { rollEncounter } from '../systems/Encounters';
 import type { BattleData } from './BattleScene';
-import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture } from '../systems/Placeholders';
+import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
 import { fixToCamera, makePanel, makeText } from '../ui/text';
-import { BaseScene } from './BaseScene';
+import { BaseScene, fitCamera } from './BaseScene';
 
 const STEP_MS = 160;
 const DELTA: Record<Facing, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -56,11 +56,7 @@ export class WorldScene extends BaseScene {
     this.player = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1);
     this.setFacing(this.st.facing);
     this.placePlayer();
-
-    const cam = this.cameras.main;
-    cam.setBounds(0, 0, this.map.grid[0].length * TILE, this.map.grid.length * TILE);
-    cam.startFollow(this.player, true, 0.2, 0.2, 0, TILE / 2);
-    cam.setRoundPixels(true);
+    this.setupCameras();
 
     this.controls = new Controls(this);
     this.dialog = new DialogBox(this, this.controls);
@@ -72,12 +68,41 @@ export class WorldScene extends BaseScene {
     AudioManager.playMusic(this, this.map.music);
   }
 
+  /**
+   * Duas câmeras em Full HD: a principal segue o jogador pelo mapa (camada do mundo)
+   * e a de interface fica parada por cima (HUD, diálogos, menus, direcional).
+   */
+  private setupCameras(): void {
+    const world = this.add.layer();
+    world.add(this.children.list.filter((o) => (o as unknown) !== world));
+    const cam = this.cameras.main;
+    cam.setZoom(RENDER_SCALE);
+    cam.setBounds(0, 0, this.map.grid[0].length * TILE, this.map.grid.length * TILE);
+    cam.startFollow(this.player, true, 0.2, 0.2, 0, TILE / 2);
+    cam.setRoundPixels(true);
+
+    const ui = fitCamera(this.cameras.add(0, 0, GAME_WIDTH * RENDER_SCALE, GAME_HEIGHT * RENDER_SCALE));
+    ui.ignore(world);
+    // tudo que for criado depois (interface) só aparece na câmera de interface
+    const hide = (obj: Phaser.GameObjects.GameObject) => cam.ignore(obj);
+    this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, hide);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, hide));
+  }
+
   // ------------------------------------------------------------------ mapa
   private drawMap(): void {
     const { grid, theme } = this.map;
     grid.forEach((row, y) =>
       [...row].forEach((ch, x) => {
-        this.add.image(x * TILE, y * TILE, tileTexture(this, theme, TILES[ch].name)).setOrigin(0).setDepth(0);
+        this.add.image(x * TILE, y * TILE, tileTexture(this, theme, TILES[ch].name)).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(0);
+        if (ch === '#') {
+          // árvore alta: base no tile, copa avançando sobre o tile de cima
+          this.add
+            .image(x * TILE + TILE / 2, (y + 1) * TILE + 2, treeTexture(this, theme))
+            .setOrigin(0.5, 1)
+            .setDisplaySize(TREE_SIZE.w, TREE_SIZE.h)
+            .setDepth(y * TILE + 4);
+        }
       }),
     );
     for (const b of this.map.buildings) {
@@ -92,7 +117,7 @@ export class WorldScene extends BaseScene {
           .setDepth(5000);
       }
     }
-    for (const s of this.map.signs) this.add.image(s.x * TILE, s.y * TILE, signTexture(this)).setOrigin(0).setDepth(s.y * TILE + 1);
+    for (const s of this.map.signs) this.add.image(s.x * TILE, s.y * TILE, signTexture(this)).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(s.y * TILE + 1);
     for (const def of this.map.npcs) {
       if (def.look === this.st.trainerId) continue; // o jogador não encontra a si mesmo
       const look = typeof def.look === 'string' ? getTrainer(def.look).look : def.look;
@@ -112,7 +137,7 @@ export class WorldScene extends BaseScene {
     this.tweens.add({ targets: banner, alpha: 0, delay: 2200, duration: 500 });
 
     // Botão de menu (útil no toque e no mouse)
-    const btn = this.add.container(this.scale.width - 70, 34).setDepth(8000);
+    const btn = this.add.container(GAME_WIDTH - 70, 34).setDepth(8000);
     const bg = this.add.rectangle(0, 0, 112, 44, UI.panel, 0.85).setStrokeStyle(2, UI.border).setInteractive({ useHandCursor: true });
     btn.add([bg, makeText(this, 0, 0, '☰ Menu', 18).setOrigin(0.5)]);
     fixToCamera(btn);
@@ -158,6 +183,7 @@ export class WorldScene extends BaseScene {
 
   // ------------------------------------------------------------------ loop
   update(): void {
+    if (this.dialog.open || this.menu) this.controls.clearTap();
     if (this.moving || this.dialog.open || this.menu) return;
     const dir = this.controls.direction();
     if (dir) this.tryMove(dir);
@@ -213,7 +239,7 @@ export class WorldScene extends BaseScene {
   private warp(w: WarpDef): void {
     Object.assign(this.st, { mapId: w.to, x: w.tx, y: w.ty, facing: w.facing });
     this.moving = true;
-    this.cameras.main.fadeOut(180, 0, 0, 0);
+    for (const c of this.cameras.cameras) c.fadeOut(180, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.restart());
   }
 
@@ -264,9 +290,9 @@ export class WorldScene extends BaseScene {
       return;
     }
     this.controls.pad?.setVisible(false);
-    const x = this.scale.width - 280;
+    const x = GAME_WIDTH - 280;
     const box = this.add.container(0, 0).setDepth(9500);
-    const shade = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.4).setOrigin(0).setInteractive();
+    const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.4).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.toggleMenu());
     box.add([shade, makePanel(this, x - 20, 70, 260, 390)]);
     const list = new MenuList(

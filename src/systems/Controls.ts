@@ -9,6 +9,8 @@ import { VirtualPad } from '../ui/VirtualPad';
 export class Controls extends Phaser.Events.EventEmitter {
   readonly pad?: VirtualPad;
   private keys: Record<Facing, Phaser.Input.Keyboard.Key[]>;
+  /** toque rápido numa seta (apertou e soltou entre dois quadros) vale 1 passo */
+  private tapped: Facing | null = null;
 
   constructor(scene: Phaser.Scene, opts: { pad?: boolean } = {}) {
     super();
@@ -21,7 +23,9 @@ export class Controls extends Phaser.Events.EventEmitter {
       left: add(K.LEFT, K.A),
       right: add(K.RIGHT, K.D),
     };
+    const TAP: Record<string, Facing> = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
     const onKey = (e: KeyboardEvent) => {
+      if (TAP[e.code] && !e.repeat) this.tapped = TAP[e.code];
       if (['Enter', 'Space', 'KeyZ'].includes(e.code)) this.emit('action');
       else if (['Escape', 'KeyX', 'Backspace'].includes(e.code)) this.emit('cancel');
     };
@@ -38,7 +42,20 @@ export class Controls extends Phaser.Events.EventEmitter {
   }
 
   direction(): Facing | null {
-    for (const f of ['up', 'down', 'left', 'right'] as Facing[]) if (this.keys[f].some((k) => k.isDown)) return f;
-    return this.pad?.dir ?? null;
+    for (const f of ['up', 'down', 'left', 'right'] as Facing[]) {
+      if (this.keys[f].some((k) => k.isDown)) {
+        this.tapped = null;
+        return f;
+      }
+    }
+    if (this.pad?.dir) return this.pad.dir;
+    const t = this.tapped;
+    this.tapped = null;
+    return t;
+  }
+
+  /** Descarta um toque pendente (ex.: ao abrir diálogo ou menu). */
+  clearTap(): void {
+    this.tapped = null;
   }
 }

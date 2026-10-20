@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT, UI } from '../config';
+import { FONT, RENDER_SCALE, UI } from '../config';
 
 export function makeText(
   scene: Phaser.Scene,
@@ -14,6 +14,7 @@ export function makeText(
     fontFamily: FONT,
     fontSize: `${size}px`,
     color,
+    resolution: RENDER_SCALE,
     ...style,
   });
 }
@@ -35,10 +36,12 @@ export function makePanel(
   return g;
 }
 
-/** Fixa um objeto (e todos os filhos, se for container) na câmera — necessário para o toque funcionar com a câmera rolando. */
+/**
+ * Marca um objeto como interface fixa na tela. Com a renderização em Full HD, a cena do
+ * mapa tem uma câmera só para a interface (que nunca rola), então não é preciso mudar o
+ * scrollFactor — e mudar quebraria o toque com a câmera em zoom. Mantido como ponto único
+ * caso a estratégia mude.
+ */
 export function fixToCamera<T extends Phaser.GameObjects.GameObject>(obj: T): T {
-  const o = obj as unknown as Phaser.GameObjects.Components.ScrollFactor;
-  o.setScrollFactor?.(0);
-  if (obj instanceof Phaser.GameObjects.Container) obj.list.forEach((c) => fixToCamera(c));
   return obj;
 }

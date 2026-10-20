@@ -3,7 +3,7 @@ import type { BiomeTheme, BuildingKind, Facing } from '../data/maps';
 import { getSpecies, type PlaceholderShape } from '../data/monsters';
 import { ELEMENTS } from '../data/elements';
 import type { TrainerData } from '../data/trainers';
-import { TILE } from '../config';
+import { RENDER_SCALE, TILE } from '../config';
 
 /**
  * Se existir uma imagem carregada com a chave `key` (arquivo em public/assets),
@@ -13,9 +13,11 @@ function ensure(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g
   if (scene.textures.exists(key)) return key;
   const ph = `ph:${key}`;
   if (!scene.textures.exists(ph)) {
+    // desenhado em resolução dobrada (Full HD); quem exibe usa setDisplaySize/fitInto
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    g.scaleCanvas(RENDER_SCALE, RENDER_SCALE);
     draw(g);
-    g.generateTexture(ph, w, h);
+    g.generateTexture(ph, w * RENDER_SCALE, h * RENDER_SCALE);
     g.destroy();
   }
   return ph;
@@ -59,8 +61,9 @@ export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string
         g.fillStyle(shade(theme.tallgrass, 0.75)).fillRect(0, 28, 32, 4);
         break;
       case 'tree':
+        // o tile é só chão; a árvore em si é um objeto alto (treeTexture)
         ground();
-        drawTree(g, theme);
+        g.fillStyle(shade(theme.ground, 0.8)).fillEllipse(16, 26, 26, 10);
         break;
       case 'water':
         g.fillStyle(theme.water).fillRect(0, 0, TILE, TILE);
@@ -92,64 +95,172 @@ export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string
   });
 }
 
-/** "Árvore" (obstáculo) no estilo de cada bioma. */
-function drawTree(g: Phaser.GameObjects.Graphics, theme: BiomeTheme): void {
-  const c = theme.tree;
-  switch (theme.treeStyle) {
-    case 'palm':
-      g.fillStyle(0x8d6e4a).fillRect(14, 10, 4, 20);
-      g.fillStyle(c);
-      g.fillEllipse(9, 9, 16, 6).fillEllipse(23, 9, 16, 6).fillEllipse(12, 5, 12, 5).fillEllipse(20, 5, 12, 5);
-      g.fillStyle(0x6b4226).fillCircle(15, 11, 2).fillCircle(18, 11, 2);
-      break;
-    case 'pine':
-      g.fillStyle(0x5c4033).fillRect(14, 24, 4, 7);
-      g.fillStyle(c).fillTriangle(16, 2, 4, 26, 28, 26);
-      g.fillStyle(0xffffff, 0.85).fillTriangle(16, 2, 11, 11, 21, 11);
-      break;
-    case 'mesa':
-      g.fillStyle(c).fillRect(3, 6, 26, 24);
-      g.fillStyle(shade(c, 1.2)).fillRect(3, 6, 26, 5);
-      g.fillStyle(shade(c, 0.8)).fillRect(3, 18, 26, 2).fillRect(3, 24, 26, 2);
-      break;
-    case 'pillar':
-      g.fillStyle(shade(c, 0.8)).fillRect(6, 26, 20, 5);
-      g.fillStyle(c).fillRect(9, 6, 14, 21);
-      g.fillStyle(shade(c, 1.25)).fillRect(6, 3, 20, 5).fillRect(11, 8, 3, 18);
-      g.fillStyle(0xc77dff, 0.6).fillCircle(16, 15, 2);
-      break;
-    case 'spire':
-      g.fillStyle(c).fillTriangle(16, 1, 6, 30, 26, 30);
-      break;
-    default:
-      g.fillStyle(0x6b4226).fillRect(13, 20, 6, 10);
-      g.fillStyle(c).fillCircle(16, 14, 13);
-      g.fillStyle(shade(c, 1.25)).fillCircle(12, 10, 5);
-  }
+/** Tamanho (em unidades de layout) do obstáculo alto de cada bioma. */
+export const TREE_SIZE = { w: 44, h: 60 };
+
+/**
+ * Obstáculo do bioma desenhado como objeto alto (passa do tile para cima),
+ * para o personagem poder andar "atrás" da copa. Arquivo: public/assets/objects/tree_<bioma>.png
+ */
+export function treeTexture(scene: Phaser.Scene, theme: BiomeTheme): string {
+  const { w, h } = TREE_SIZE;
+  return ensure(scene, `objects/tree_${theme.id}`, w, h, (g) => {
+    const c = theme.tree;
+    const dark = shade(c, 0.7);
+    const light = shade(c, 1.3);
+    const cx = w / 2;
+    g.fillStyle(0x000000, 0.22).fillEllipse(cx, h - 4, 34, 9);
+    switch (theme.treeStyle) {
+      case 'palm': {
+        // tronco curvo em gomos
+        for (let i = 0; i < 9; i++) {
+          const t = i / 8;
+          const x = cx - 2 + Math.sin(t * 1.6) * 7;
+          const y = h - 6 - t * 38;
+          g.fillStyle(i % 2 ? 0x9c7a54 : 0x8a6a46).fillEllipse(x, y, 9 - t * 2, 7);
+        }
+        const tx = cx - 2 + Math.sin(1.6) * 7;
+        const ty = h - 44;
+        // folhas
+        const frond = (ang: number, len: number, col: number) => {
+          const ex = tx + Math.cos(ang) * len;
+          const ey = ty + Math.sin(ang) * len * 0.7 + 6;
+          const nx = Math.cos(ang + Math.PI / 2) * 4;
+          const ny = Math.sin(ang + Math.PI / 2) * 4;
+          g.fillStyle(col).fillTriangle(tx + nx, ty + ny, tx - nx, ty - ny, ex, ey);
+          g.fillStyle(shade(col, 0.8)).fillTriangle(tx, ty, (tx + ex) / 2 + nx, (ty + ey) / 2 + ny + 3, ex, ey);
+        };
+        [Math.PI * 1.05, Math.PI * 1.35, Math.PI * 1.65, Math.PI * 1.95, Math.PI * 0.2, Math.PI * 0.8].forEach((a, i) => frond(a, 20, i % 2 ? c : light));
+        g.fillStyle(0x6b4226).fillCircle(tx - 3, ty + 3, 3).fillCircle(tx + 3, ty + 4, 3).fillCircle(tx, ty + 6, 3);
+        break;
+      }
+      case 'pine': {
+        g.fillStyle(0x5c4033).fillRect(cx - 3, h - 14, 6, 11);
+        const tiers: [number, number, number][] = [[h - 12, 20, 18], [h - 24, 16, 16], [h - 35, 12, 15]];
+        tiers.forEach(([base, half, height], i) => {
+          g.fillStyle(dark).fillTriangle(cx, base - height, cx - half, base, cx + half, base);
+          g.fillStyle(i === 2 ? light : c).fillTriangle(cx, base - height, cx - half + 4, base - 2, cx + 2, base - 2);
+          if (theme.id === 'picos') {
+            g.fillStyle(0xffffff, 0.95).fillTriangle(cx, base - height, cx - half * 0.45, base - height * 0.5, cx + half * 0.45, base - height * 0.5);
+            g.fillStyle(0xffffff, 0.9).fillEllipse(cx - half + 4, base - 1, 8, 3).fillEllipse(cx + half - 5, base - 1, 7, 3);
+          }
+        });
+        break;
+      }
+      case 'mesa': {
+        const base = h - 4;
+        g.fillStyle(dark).fillRoundedRect(4, 18, w - 8, base - 18, 4);
+        g.fillStyle(c).fillRoundedRect(6, 16, w - 16, base - 18, 4);
+        for (let y = 24; y < base - 4; y += 8) g.fillStyle(shade(c, y % 16 ? 1.12 : 0.88)).fillRect(6, y, w - 16, 3);
+        g.fillStyle(light).fillRoundedRect(4, 12, w - 8, 8, 3);
+        g.fillStyle(0x6a8d3a).fillEllipse(14, 12, 10, 4).fillEllipse(30, 13, 8, 3);
+        g.fillStyle(0x000000, 0.15).fillRect(w - 12, 20, 6, base - 22);
+        break;
+      }
+      case 'pillar': {
+        const base = h - 4;
+        g.fillStyle(dark).fillRect(cx - 14, base - 7, 28, 7);
+        g.fillStyle(c).fillRect(cx - 10, 14, 20, base - 21);
+        for (let x = cx - 7; x <= cx + 7; x += 5) g.fillStyle(shade(c, 0.8)).fillRect(x, 16, 2, base - 25);
+        g.fillStyle(light).fillRect(cx - 14, 8, 28, 7);
+        g.fillStyle(dark).fillTriangle(cx + 4, 8, cx + 14, 8, cx + 14, 3); // topo quebrado
+        g.lineStyle(1.5, 0x241640, 0.8).beginPath().moveTo(cx - 4, 18).lineTo(cx - 1, 26).lineTo(cx - 5, 33).strokePath();
+        g.fillStyle(0xc77dff, 0.35).fillCircle(cx + 1, 36, 6);
+        g.fillStyle(0xe0aaff).fillCircle(cx + 1, 36, 2.5);
+        g.fillStyle(0x5a189a).fillEllipse(cx - 9, 30, 4, 12).fillEllipse(cx + 9, base - 16, 4, 10);
+        break;
+      }
+      default: {
+        // árvore frondosa
+        g.fillStyle(0x5d3a1a).fillRect(cx - 3.5, h - 24, 7, 20);
+        g.fillStyle(0x4a2c12).fillRect(cx + 0.5, h - 24, 3, 20);
+        g.fillStyle(0x5d3a1a).fillTriangle(cx - 3.5, h - 6, cx - 9, h - 3, cx - 2, h - 9).fillTriangle(cx + 3.5, h - 6, cx + 9, h - 3, cx + 2, h - 9);
+        g.fillStyle(dark).fillCircle(cx - 9, h - 30, 11).fillCircle(cx + 9, h - 30, 11).fillCircle(cx, h - 26, 12);
+        g.fillStyle(c).fillCircle(cx, h - 38, 14).fillCircle(cx - 10, h - 34, 10).fillCircle(cx + 10, h - 34, 10).fillCircle(cx, h - 47, 10);
+        g.fillStyle(light).fillCircle(cx - 5, h - 46, 5).fillCircle(cx + 5, h - 40, 4).fillCircle(cx - 11, h - 36, 3.5);
+        g.fillStyle(shade(c, 1.5), 0.7).fillCircle(cx - 6, h - 48, 2).fillCircle(cx + 7, h - 42, 1.5);
+      }
+    }
+  });
 }
 
 // ---------------------------------------------------------------- prédios
 export function buildingTexture(scene: Phaser.Scene, kind: BuildingKind, wTiles: number, hTiles: number): string {
   const w = wTiles * TILE;
   const h = hTiles * TILE;
-  const roof = kind === 'heal' ? 0xe63946 : kind === 'shop' ? 0x3a86ff : 0x9c6644;
+  const roof = kind === 'heal' ? 0xd62839 : kind === 'shop' ? 0x2f6fd6 : 0xb5562c;
+  const wall = kind === 'house' ? 0xf3dfc1 : 0xf6ecd9;
   return ensure(scene, `buildings/${kind}`, w, h, (g) => {
-    const roofH = Math.floor(h * 0.45);
-    g.fillStyle(0xf1e3c8).fillRect(2, roofH - 4, w - 4, h - roofH + 4);
-    g.lineStyle(2, 0x5c4a3a).strokeRect(2, roofH - 4, w - 4, h - roofH + 4);
-    g.fillStyle(roof).fillTriangle(-2, roofH, w / 2, 0, w + 2, roofH);
-    g.fillStyle(shade(roof, 0.75)).fillRect(0, roofH - 6, w, 6);
+    const roofH = Math.round(h * 0.48);
+    const wallTop = roofH - 4;
+    const baseH = 6;
+    // sombra no chão
+    g.fillStyle(0x000000, 0.2).fillRect(6, h - 4, w - 8, 5);
+
+    // parede de tábuas + base de pedra
+    g.fillStyle(wall).fillRect(4, wallTop, w - 8, h - wallTop - 2);
+    for (let y = wallTop + 6; y < h - baseH; y += 6) g.fillStyle(shade(wall, 0.93)).fillRect(4, y, w - 8, 1);
+    g.fillStyle(0x9a9a9a).fillRect(4, h - baseH - 2, w - 8, baseH);
+    for (let x = 6; x < w - 8; x += 9) g.fillStyle(0x7d7d7d).fillRect(x, h - baseH - 2, 1, baseH);
+    g.lineStyle(1.5, 0x5c4a3a).strokeRect(4, wallTop, w - 8, h - wallTop - 2);
+    // pilares de madeira nos cantos
+    g.fillStyle(0x7a5232).fillRect(4, wallTop, 4, h - wallTop - 2).fillRect(w - 8, wallTop, 4, h - wallTop - 2);
+
+    // telhado em trapézio com fileiras de telhas
+    const pts = [new Phaser.Math.Vector2(0, roofH), new Phaser.Math.Vector2(w, roofH), new Phaser.Math.Vector2(w - 12, 6), new Phaser.Math.Vector2(12, 6)];
+    g.fillStyle(roof).fillPoints(pts, true);
+    for (let y = 10, row = 0; y < roofH - 2; y += 6, row++) {
+      const inset = 12 - ((y - 6) / (roofH - 6)) * 12;
+      g.fillStyle(shade(roof, 0.82)).fillRect(inset, y + 4, w - inset * 2, 1.5);
+      for (let x = inset + (row % 2 ? 4 : 0); x < w - inset; x += 8) g.fillStyle(shade(roof, 0.88)).fillRect(x, y, 1, 5);
+    }
+    g.fillStyle(shade(roof, 0.6)).fillRect(10, 3, w - 20, 5); // cumeeira
+    g.fillStyle(shade(roof, 0.7)).fillRect(-1, roofH - 3, w + 2, 5); // beiral
+    g.fillStyle(0x000000, 0.18).fillRect(4, roofH + 2, w - 8, 4); // sombra do beiral
+
+    if (kind === 'house') {
+      // chaminé
+      g.fillStyle(0x8c3b2b).fillRect(w - 34, 0, 10, 16);
+      g.fillStyle(0x6e2c20).fillRect(w - 36, -1, 14, 4);
+      g.fillStyle(0xdddddd, 0.6).fillCircle(w - 28, -4, 3);
+    }
+
+    // janelas com moldura, cruz e floreira
+    const win = (x: number) => {
+      const y = roofH + 9;
+      g.fillStyle(0xffffff).fillRect(x - 1.5, y - 1.5, 21, 17);
+      g.fillStyle(0x7cc6f2).fillRect(x, y, 18, 14);
+      g.fillStyle(0xb9e3fb).fillTriangle(x, y, x + 9, y, x, y + 9);
+      g.fillStyle(0xffffff).fillRect(x + 8, y, 2, 14).fillRect(x, y + 6, 18, 2);
+      g.fillStyle(0x7a5232).fillRect(x - 2, y + 15, 22, 4);
+      [3, 8, 13, 17].forEach((dx, i) => g.fillStyle([0xff6b8b, 0xffd166, 0xff8fab, 0xf4a261][i]).fillCircle(x + dx, y + 15, 2));
+    };
+    win(14);
+    win(w - 32);
+
     // porta
     const dx = Math.floor(wTiles / 2) * TILE;
-    g.fillStyle(0x5c3d2e).fillRect(dx + 6, h - 26, TILE - 12, 26);
-    // janelas
-    g.fillStyle(0x9ad1f5);
-    g.fillRect(10, roofH + 10, 18, 14).fillRect(w - 28, roofH + 10, 18, 14);
+    const doorTop = h - 30;
+    g.fillStyle(0x4a2f1f).fillRoundedRect(dx + 5, doorTop - 2, TILE - 10, 30, { tl: 8, tr: 8, bl: 0, br: 0 });
+    g.fillStyle(0x7a4a2e).fillRoundedRect(dx + 7, doorTop, TILE - 14, 27, { tl: 7, tr: 7, bl: 0, br: 0 });
+    g.fillStyle(0x6a3d24).fillRect(dx + 10, doorTop + 6, 5, 8).fillRect(dx + 17, doorTop + 6, 5, 8).fillRect(dx + 10, doorTop + 16, 5, 8).fillRect(dx + 17, doorTop + 16, 5, 8);
+    g.fillStyle(0xffd166).fillCircle(dx + TILE - 11, doorTop + 15, 1.6);
+    g.fillStyle(0xbdbdbd).fillRect(dx + 3, h - 3, TILE - 6, 3); // degrau
+
     if (kind === 'heal') {
-      g.fillStyle(0xffffff).fillRect(w / 2 - 10, roofH * 0.35, 20, 6).fillRect(w / 2 - 3, roofH * 0.35 - 7, 6, 20);
+      // placa redonda com cruz
+      g.fillStyle(0xffffff).fillCircle(w / 2, roofH * 0.52, 11);
+      g.lineStyle(2, shade(roof, 0.7)).strokeCircle(w / 2, roofH * 0.52, 11);
+      g.fillStyle(0xe63946).fillRect(w / 2 - 7, roofH * 0.52 - 2.5, 14, 5).fillRect(w / 2 - 2.5, roofH * 0.52 - 7, 5, 14);
     } else if (kind === 'shop') {
-      g.fillStyle(0xffd166).fillCircle(w / 2, roofH * 0.5, 9);
-      g.fillStyle(0x3a86ff).fillRect(w / 2 - 2, roofH * 0.5 - 6, 4, 12);
+      // toldo listrado sobre a porta e placa com moeda
+      const ax = dx - 6;
+      const aw = TILE + 12;
+      for (let i = 0; i < 6; i++) g.fillStyle(i % 2 ? 0xffffff : 0x2f6fd6).fillRect(ax + (i * aw) / 6, doorTop - 10, aw / 6 + 0.5, 8);
+      for (let i = 0; i < 6; i++) g.fillStyle(i % 2 ? 0xffffff : 0x2f6fd6).fillCircle(ax + (i + 0.5) * (aw / 6), doorTop - 2, aw / 12);
+      g.fillStyle(0xffd166).fillCircle(w / 2, roofH * 0.52, 10);
+      g.lineStyle(2, 0xb7881f).strokeCircle(w / 2, roofH * 0.52, 10);
+      g.fillStyle(0xb7881f).fillRect(w / 2 - 1.5, roofH * 0.52 - 6, 3, 12);
     }
   });
 }

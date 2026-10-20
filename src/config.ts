@@ -1,5 +1,11 @@
+/**
+ * O layout do jogo usa coordenadas de 960×540, mas a renderização é em Full HD:
+ * o canvas tem 1920×1080 e as câmeras usam zoom 2. Textos e texturas são gerados
+ * em resolução dobrada para ficarem nítidos.
+ */
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
+export const RENDER_SCALE = 2;
 export const TILE = 32;
 
 export const FONT = '"Trebuchet MS", "Segoe UI", Verdana, sans-serif';

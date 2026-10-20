@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, UI } from './config';
+import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, UI } from './config';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { MenuScene } from './scenes/MenuScene';
@@ -16,8 +16,8 @@ import { EvolutionScene } from './scenes/EvolutionScene';
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
+  width: GAME_WIDTH * RENDER_SCALE,
+  height: GAME_HEIGHT * RENDER_SCALE,
   backgroundColor: UI.bg,
   pixelArt: false,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
@@ -41,4 +41,6 @@ const game = new Phaser.Game({
 // Exposto para testes automatizados (scripts/smoke.mjs).
 (window as unknown as { __game: Phaser.Game }).__game = game;
 import { GameState } from './systems/GameState';
-(window as unknown as { __state: typeof GameState }).__state = GameState;
+import { createMonster } from './systems/Monster';
+// Exposto para testes automatizados.
+Object.assign(window, { __state: GameState, __create: createMonster });

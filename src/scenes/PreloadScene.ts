@@ -1,6 +1,7 @@
 import manifest from 'virtual:asset-manifest';
-import { FONT, SCENES, UI } from '../config';
-import { BaseScene } from './BaseScene';
+import { SCENES, UI } from '../config';
+import { makeText } from '../ui/text';
+import { BaseScene, fitCamera } from './BaseScene';
 
 const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
 const AUDIO_EXT = /\.(mp3|ogg|wav|m4a)$/i;
@@ -14,12 +15,12 @@ export class PreloadScene extends BaseScene {
   }
 
   preload(): void {
-    this.cameras.main.setBackgroundColor(UI.bg);
+    fitCamera(this.cameras.main).setBackgroundColor(UI.bg);
     const w = 420;
     const x = this.cx - w / 2;
     const y = this.cy;
-    this.add.text(this.cx, y - 50, 'Elementais', { fontFamily: FONT, fontSize: '36px', color: UI.accent, fontStyle: 'bold' }).setOrigin(0.5);
-    const label = this.add.text(this.cx, y + 40, 'Carregando... 0%', { fontFamily: FONT, fontSize: '18px', color: UI.textDim }).setOrigin(0.5);
+    makeText(this, this.cx, y - 50, 'Elementais', 36, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5);
+    const label = makeText(this, this.cx, y + 40, 'Carregando... 0%', 18, UI.textDim).setOrigin(0.5);
     const frame = this.add.graphics();
     frame.lineStyle(3, UI.border).strokeRoundedRect(x, y - 12, w, 24, 8);
     const bar = this.add.graphics();

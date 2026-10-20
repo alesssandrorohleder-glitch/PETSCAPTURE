@@ -5,10 +5,19 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   const walk = async (key, n) => {
     for (let i = 0; i < n; i++) {
       const before = await st();
-      await page.keyboard.down(key);
-      await page.waitForFunction((b) => { const s = window.__state.get(); return s.x !== b.x || s.y !== b.y || s.mapId !== b.map; }, before, { timeout: 3000 }).catch(() => {});
-      await page.keyboard.up(key);
-      await page.waitForFunction(() => { const w = window.__game.scene.getScene('World'); return !w.moving || !window.__game.scene.isActive('World'); }, null, { timeout: 3000 });
+      await page.keyboard.press(key); // toque rápido = 1 passo
+      // espera o passo terminar (ou só virar, se bloqueado)
+      await page.waitForFunction(
+        (b) => {
+          const g = window.__game;
+          if (!g.scene.isActive('World')) return true;
+          const s = window.__state.get();
+          const w = g.scene.getScene('World');
+          return !w.moving && (s.x !== b.x || s.y !== b.y || s.mapId !== b.map);
+        },
+        before,
+        { timeout: 700 },
+      ).catch(() => {});
       if (!(await page.evaluate(() => window.__game.scene.isActive('World')))) return;
     }
   };
@@ -49,7 +58,7 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   // NPC Ancião (10,8): olhar para baixo e falar
   await walk('ArrowDown', 1); // bloqueado pelo NPC, só vira
   s = await st();
-  assert(s.y === 7 && s.facing === 'down', 'NPC bloqueia passagem');
+  assert(s.y === 7 && s.facing === 'down', `NPC bloqueia passagem (${JSON.stringify(s)})`);
   await press('Enter', 700);
   assert(await world('w.dialog.open'), 'diálogo do NPC abre');
   await shot('06-dialog');
@@ -132,8 +141,9 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await page.evaluate(() => {
     const pet = window.__state.get().party[0];
     pet.level = 9; pet.xp = 999; pet.moves = ['jato_dagua', 'bolha_prisao', 'onda_cortante', 'cura_mare'];
-    pet.hp = 25; pet.status = null;
-    window.__game.scene.getScene('World').startEncounter();
+    pet.hp = 28; pet.status = null;
+    const w = window.__game.scene.getScene('World');
+    w.scene.start('Battle', { kind: 'wild', enemies: [window.__create('larvilo', 2)] });
   });
   await expectScene('Battle');
   await wait(2500);
