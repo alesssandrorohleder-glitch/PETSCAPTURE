@@ -12,12 +12,13 @@ import { toast } from '../ui/Overlay';
 import type { BattleData } from './BattleScene';
 import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
 import { getSpecies } from '../data/monsters';
+import { WANDERERS, wandererFlag, type WandererDef } from '../data/wanderers';
 import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
 import { fixToCamera, makePanel, makeText } from '../ui/text';
-import { BaseScene, fitCamera } from './BaseScene';
+import { BaseScene, fitCamera, tweenP, wait } from './BaseScene';
 
 const STEP_MS = 160;
 const DELTA: Record<Facing, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -40,7 +41,24 @@ interface NpcObj {
   def: NpcDef;
   sprite: Phaser.GameObjects.Image;
   look: TrainerData['look'];
+  /** posição atual (andarilhos se movem) */
+  x: number;
+  y: number;
+  facing: Facing;
+  /** treinador andarilho */
+  wander?: WandererDef;
+  /** horário (ms da cena) do próximo passo/virada */
+  nextMove: number;
 }
+
+/** Quem aparece na abertura da batalha (retrato e nome). */
+interface Opponent {
+  id: string;
+  name: string;
+  look: TrainerData['look'];
+}
+
+const SIGHT = 4;
 
 export class WorldScene extends BaseScene {
   private map!: MapDef;
@@ -65,6 +83,7 @@ export class WorldScene extends BaseScene {
     this.st = GameState.get();
     this.map = getMap(this.st.mapId);
     this.moving = false;
+    this.engaging = false;
     this.menu = undefined;
     this.npcs = [];
     this.look = getTrainer(this.st.trainerId).look;
@@ -126,13 +145,13 @@ export class WorldScene extends BaseScene {
   }
 
   /** Inicia uma batalha contra treinador; ao vencer, volta ao mapa com as falas de vitória. */
-  private startTrainerBattle(def: TrainerBattleDef): void {
-    const trainer = getTrainer(def.trainer);
+  private startTrainerBattle(def: TrainerBattleDef, who?: Opponent): void {
+    const trainer: Opponent = who ?? getTrainer(def.trainer);
     const data: BattleData = {
       kind: 'trainer',
       enemies: def.team.map(([sp, lv]) => createMonster(sp, lv)),
       enemyName: trainer.name,
-      trainerId: trainer.id,
+      trainer: { id: trainer.id, name: trainer.name, look: trainer.look },
       prize: def.prize,
       intro: this.lines(def.intro).slice(-1)[0],
       next: { scene: SCENES.World, data: { after: { flag: def.flag, speaker: trainer.name, lines: def.win, final: def.final } } satisfies WorldData },
@@ -237,11 +256,17 @@ export class WorldScene extends BaseScene {
       }
     }
     for (const s of this.map.signs) this.add.image(s.x * TILE, s.y * TILE, signTexture(this)).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(s.y * TILE + 1);
-    for (const def of [...this.map.npcs, ...storyNpcs(this.map.id)]) {
+    const wanderers = WANDERERS.filter((w) => w.map === this.map.id).map((w) => ({
+      def: { id: w.id, x: w.home.x, y: w.home.y, facing: 'down' as Facing, look: w.look, name: w.name, dialog: [] },
+      wander: w,
+    }));
+    const statics = [...this.map.npcs, ...storyNpcs(this.map.id)].map((def) => ({ def, wander: undefined }));
+    for (const { def, wander } of [...statics, ...wanderers]) {
       if (def.look === this.st.trainerId) continue; // o jogador não encontra a si mesmo
       const look = typeof def.look === 'string' ? getTrainer(def.look).look : def.look;
-      const sprite = this.add.image(def.x * TILE + TILE / 2, (def.y + 1) * TILE, '__DEFAULT').setOrigin(0.5, 1).setDepth(def.y * TILE + 2);
-      const npc = { def, sprite, look };
+      const sprite = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1);
+      const npc: NpcObj = { def, sprite, look, x: def.x, y: def.y, facing: def.facing, wander, nextMove: this.time.now + 1500 + Math.random() * 1500 };
+      this.placeNpc(npc);
       this.applySprite(sprite, def.id, look, def.facing);
       this.npcs.push(npc);
     }
@@ -289,7 +314,104 @@ export class WorldScene extends BaseScene {
   }
 
   private npcAt(x: number, y: number): NpcObj | undefined {
-    return this.npcs.find((n) => n.def.x === x && n.def.y === y);
+    return this.npcs.find((n) => n.x === x && n.y === y);
+  }
+
+  private placeNpc(n: NpcObj): void {
+    n.sprite.setPosition(n.x * TILE + TILE / 2, (n.y + 1) * TILE).setDepth(n.y * TILE + 2);
+  }
+
+  private faceNpc(n: NpcObj, f: Facing): void {
+    n.facing = f;
+    this.applySprite(n.sprite, n.def.id, n.look, f);
+  }
+
+  /** Mundo parado (diálogo, menu, evento ou transição): ninguém anda. */
+  private get locked(): boolean {
+    return this.moving || this.dialog.open || !!this.menu || this.engaging;
+  }
+
+  private engaging = false;
+
+  // ------------------------------------------------------------------ andarilhos
+  private wanderTick(now: number): void {
+    for (const n of this.npcs) {
+      if (!n.wander || now < n.nextMove) continue;
+      n.nextMove = now + 1200 + Math.random() * 1600;
+      const dirs: Facing[] = ['up', 'down', 'left', 'right'];
+      const dir = dirs[Math.floor(Math.random() * 4)];
+      this.faceNpc(n, dir);
+      if (Math.random() < 0.6) {
+        const [dx, dy] = DELTA[dir];
+        const nx = n.x + dx;
+        const ny = n.y + dy;
+        const home = n.wander.home;
+        const inArea = Math.abs(nx - home.x) <= n.wander.radius && Math.abs(ny - home.y) <= n.wander.radius;
+        const special = this.map.warps.some((w) => w.x === nx && w.y === ny) || TRIGGERS.some((t) => t.map === this.map.id && nx >= t.x && nx < t.x + t.w && ny >= t.y && ny < t.y + t.h);
+        const onPlayer = nx === this.st.x && ny === this.st.y;
+        if (inArea && !special && !onPlayer && !this.blocked(nx, ny)) {
+          n.x = nx;
+          n.y = ny;
+          n.sprite.setDepth(ny * TILE + 2);
+          this.tweens.add({ targets: n.sprite, x: nx * TILE + TILE / 2, y: (ny + 1) * TILE, duration: 220 });
+        }
+      }
+      if (this.checkSight()) return;
+    }
+  }
+
+  /** Algum andarilho ainda não vencido está vendo o jogador? Se sim, ele vem desafiar. */
+  private checkSight(): boolean {
+    for (const n of this.npcs) {
+      if (!n.wander || this.st.flags[wandererFlag(n.wander.id)]) continue;
+      const [dx, dy] = DELTA[n.facing];
+      for (let i = 1; i <= SIGHT; i++) {
+        const x = n.x + dx * i;
+        const y = n.y + dy * i;
+        if (x === this.st.x && y === this.st.y) {
+          void this.engage(n, i - 1);
+          return true;
+        }
+        if (this.blocked(x, y)) break;
+      }
+    }
+    return false;
+  }
+
+  /** "!" sobre o andarilho, ele caminha até o jogador e desafia. */
+  private async engage(n: NpcObj, steps: number): Promise<void> {
+    this.engaging = true;
+    const mark = this.addToWorld(makeText(this, n.sprite.x, n.sprite.y - 52, '!', 30, '#ffd166', { fontStyle: 'bold', stroke: '#14112b', strokeThickness: 5 }).setOrigin(0.5).setDepth(9000));
+    this.tweens.add({ targets: mark, y: mark.y - 8, yoyo: true, duration: 150 });
+    await wait(this, 650);
+    mark.destroy();
+    const [dx, dy] = DELTA[n.facing];
+    for (let i = 0; i < steps; i++) {
+      n.x += dx;
+      n.y += dy;
+      n.sprite.setDepth(n.y * TILE + 2);
+      await tweenP(this, { targets: n.sprite, x: n.x * TILE + TILE / 2, y: (n.y + 1) * TILE, duration: 200 });
+    }
+    this.setFacing(OPPOSITE[n.facing]);
+    await this.challenge(n, false);
+  }
+
+  /** Fala de desafio e batalha (ou pergunta de revanche, se já foi vencido). */
+  private async challenge(n: NpcObj, rematch: boolean): Promise<void> {
+    const w = n.wander!;
+    this.engaging = true;
+    const who: Opponent = { id: w.id, name: w.name, look: w.look };
+    const def: TrainerBattleDef = { flag: wandererFlag(w.id), trainer: w.id, team: w.team, prize: rematch ? Math.floor(w.prize / 2) : w.prize, intro: [rematch ? w.rematch : w.intro], win: w.win, after: [] };
+    if (rematch) {
+      const ans = await this.dialog.ask(w.rematch, ['Batalhar!', 'Agora não'], w.name);
+      if (ans !== 0) {
+        this.engaging = false;
+        return;
+      }
+    } else {
+      await this.dialog.show([w.intro], w.name);
+    }
+    this.startTrainerBattle(def, who);
   }
 
   private blocked(x: number, y: number): boolean {
@@ -303,7 +425,9 @@ export class WorldScene extends BaseScene {
   // ------------------------------------------------------------------ loop
   update(): void {
     if (this.dialog.open || this.menu) this.controls.clearTap();
-    if (this.moving || this.dialog.open || this.menu) return;
+    if (this.locked) return;
+    this.wanderTick(this.time.now);
+    if (this.locked) return;
     const dir = this.controls.direction();
     if (dir) this.tryMove(dir);
   }
@@ -344,6 +468,7 @@ export class WorldScene extends BaseScene {
       (t) => t.map === this.map.id && !f[RIVAL[t.event].flag] && (!t.requires || f[t.requires]) && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h,
     );
     if (trig) return void this.rivalEvent(trig.event);
+    if (this.checkSight()) return;
     const ch = this.map.grid[y][x];
     if (TILES[ch].encounter && Math.random() < this.encounterRate) this.startEncounter();
   }
@@ -375,7 +500,8 @@ export class WorldScene extends BaseScene {
     const ty = this.st.y + dy;
     const npc = this.npcAt(tx, ty);
     if (npc) {
-      this.applySprite(npc.sprite, npc.def.id, npc.look, OPPOSITE[this.st.facing]);
+      this.faceNpc(npc, OPPOSITE[this.st.facing]);
+      if (npc.wander) return void this.challenge(npc, !!this.st.flags[wandererFlag(npc.wander.id)]);
       const battle = FRIEND_BATTLES[npc.def.id];
       if (battle && !this.st.flags[battle.flag]) void this.friendEvent(npc, battle);
       else void this.dialog.show(this.lines(battle?.after ?? npc.def.dialog), npc.def.name);

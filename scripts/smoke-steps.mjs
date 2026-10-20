@@ -48,8 +48,8 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await shot('05a-intro');
   for (let i = 0; i < 10 && (await world('w.dialog.open')); i++) await press('Enter', 400);
   assert(await page.evaluate(() => !!window.__state.get().flags.intro), 'introdução mostrada');
-  // o encontro com o Noctis na saída da vila é testado na etapa 7
-  await page.evaluate(() => { window.__state.get().flags.noctis1 = true; });
+  // o encontro com o Noctis e os andarilhos são testados na etapa 7
+  await page.evaluate(() => { const f = window.__state.get().flags; f.noctis1 = true; for (const id of ['pedrinho', 'bia', 'davi', 'lucia', 'jorge', 'sofia', 'ravi']) f['beat_w_' + id] = true; });
   await shot('05-vila');
   if (mobile) await touchPad({ page, wait });
   await walk('ArrowLeft', 1); await walk('ArrowRight', 1);
@@ -319,6 +319,27 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   assert((await flags()).noctis3 === true, 'zerou: venceu Noctis nas Ruínas');
   await press('Enter');
   await expectScene('World');
+
+  // Andarilho: Pedrinho vê o jogador e desafia
+  await goto('vila', 20, 12, 'up', strong + "s.flags.beat_w_pedrinho = false;");
+  await expectScene('World');
+  await page.evaluate(() => { const w = window.__game.scene.getScene('World'); const n = w.npcs.find((n) => n.def.id === 'w_pedrinho'); n.x = 20; n.y = 8; n.nextMove = 1e12; w.placeNpc(n); w.faceNpc(n, 'down'); });
+  await walk('ArrowUp', 1);
+  await wait(1500);
+  await shot('44-andarilho');
+  assert(await world('w.dialog.open'), 'Pedrinho viu o jogador e veio desafiar');
+  assert(await playThrough('pedrinho'), 'batalha contra o andarilho começou');
+  assert((await flags()).beat_w_pedrinho === true, 'venceu o andarilho');
+  // revanche: falar com ele de novo
+  const money0 = await page.evaluate(() => window.__state.get().money);
+  await goto('vila', 20, 9, 'up');
+  await expectScene('World');
+  await page.evaluate(() => { const w = window.__game.scene.getScene('World'); const n = w.npcs.find((n) => n.def.id === 'w_pedrinho'); n.x = 20; n.y = 8; n.nextMove = 1e12; w.placeNpc(n); });
+  await press('Enter', 800);
+  assert(await world('w.dialog.open'), 'andarilho oferece revanche');
+  assert(await playThrough('pedrinho2'), 'revanche começou');
+  const money1 = await page.evaluate(() => window.__state.get().money);
+  assert(money1 > money0, `revanche deu moedas (${money0} -> ${money1})`);
 
   // ---------------- Etapa 8: save — recarrega o site e continua
   const saved = await st();

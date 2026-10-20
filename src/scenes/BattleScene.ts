@@ -11,7 +11,7 @@ import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
 import { displayName, evolutionTarget, maxHp, MAX_MOVES, xpProgress, type MonsterInstance } from '../systems/Monster';
 import { capsuleTexture, fitInto, monsterSprite, trainerPortrait } from '../systems/Placeholders';
-import { getTrainer } from '../data/trainers';
+import type { TrainerData } from '../data/trainers';
 import { HealthBar } from '../ui/HealthBar';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { makePanel, makeText } from '../ui/text';
@@ -23,8 +23,8 @@ export interface BattleData {
   enemyName?: string;
   /** recompensa extra em moedas (treinadores) */
   prize?: number;
-  /** treinador inimigo (retrato na abertura) */
-  trainerId?: string;
+  /** treinador inimigo (retrato e nome na abertura) */
+  trainer?: { id: string; name: string; look: TrainerData['look'] };
   /** frase do treinador ao começar */
   intro?: string;
   /** pet inicial raro (3%) */
@@ -178,9 +178,9 @@ export class BattleScene extends BaseScene {
     void tweenP(this, { targets: v.enemy.sprite, x: v.enemy.home.x, duration: 500, ease: 'Cubic.out' });
     await tweenP(this, { targets: v.player.sprite, x: v.player.home.x, duration: 500, ease: 'Cubic.out' });
     const e = this.engine.active('enemy').mon;
-    if (this.data_.trainerId) {
+    if (this.data_.trainer) {
       // retrato do treinador entra, fala e sai antes do monstro aparecer
-      const t = getTrainer(this.data_.trainerId);
+      const t = this.data_.trainer;
       const portrait = fitInto(this.add.image(GAME_WIDTH + 100, 170, trainerPortrait(this, t)), 170, 210).setDepth(40);
       v.enemy.sprite.setVisible(false);
       await tweenP(this, { targets: portrait, x: 700, duration: 450, ease: 'Cubic.out' });

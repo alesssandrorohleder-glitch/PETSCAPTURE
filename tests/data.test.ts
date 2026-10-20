@@ -117,3 +117,22 @@ describe('treinadores', () => {
     for (const sp of Object.values(SPECIES)) if (sp.evolution) expect(SPECIES[sp.evolution.into]).toBeDefined();
   });
 });
+
+import { WANDERERS } from '../src/data/wanderers';
+
+describe('treinadores andarilhos', () => {
+  it('um por mapa, com espécies existentes', () => {
+    for (const map of Object.keys(MAPS)) expect(WANDERERS.filter((w) => w.map === map), map).toHaveLength(1);
+    for (const w of WANDERERS) for (const [sp] of w.team) expect(SPECIES[sp], sp).toBeDefined();
+  });
+  it('começam num tile livre e alcançável, com espaço para andar', () => {
+    for (const w of WANDERERS) {
+      const map = MAPS[w.map];
+      const seen = reach(map, map.warps[0].x, map.warps[0].y);
+      expect(seen.has(`${w.home.x},${w.home.y}`), `${w.id} em ${w.home.x},${w.home.y}`).toBe(true);
+      let free = 0;
+      for (let dx = -w.radius; dx <= w.radius; dx++) for (let dy = -w.radius; dy <= w.radius; dy++) if (seen.has(`${w.home.x + dx},${w.home.y + dy}`)) free++;
+      expect(free, w.id).toBeGreaterThan(8);
+    }
+  });
+});

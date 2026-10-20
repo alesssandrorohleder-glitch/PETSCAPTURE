@@ -13,6 +13,9 @@ npm run build      # build de produção em dist/
 npm run smoke      # teste automático no navegador (após o build)
 ```
 
+O progresso é **salvo automaticamente** no navegador (ao trocar de mapa, depois de batalhas, a cada 30 s e
+ao fechar a aba) e também pelo menu **☰ Menu → Salvar**. No menu inicial, use **Continuar**.
+
 Controles: **setas/WASD** andam, **Enter/Espaço/Z** interagem, **Esc/X** abre o menu ou volta.
 No celular aparecem um direcional e os botões **A** (interagir) e **B** (menu/voltar).
 Para ver o direcional no PC, abra com `?pad=1` no endereço.
@@ -70,6 +73,8 @@ public/assets/monsters/ignis_back.png    ← "Back view" do Ignis
 
 **Ids dos treinadores:** `kael`, `marina`, `raijin`, `bruno`, `yuki`, `noctis`.
 NPCs usam o id deles (ex.: `overworld/anciao_down.png`, `overworld/menina_down.png`).
+Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `w_bia`, `w_davi`,
+`w_lucia`, `w_jorge`, `w_sofia`, `w_ravi` — retrato em `trainers/<id>.png` e sprites em `overworld/<id>_down.png` etc.
 
 **Ids das espécies:**
 - Pets: `ignis`, `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `ignis_evo`)
@@ -92,5 +97,7 @@ mais alta que um tile para o personagem poder passar "atrás" da copa.
 
 - **Treinador:** `src/data/trainers.ts`
 - **Monstro:** `src/data/monsters.ts`
+- **História e batalhas de treinador:** `src/data/story.ts` (Noctis, amigos, gatilhos no mapa)
+- **Treinadores andarilhos:** `src/data/wanderers.ts`
 - **Mapa:** `src/data/maps.ts` — o mapa é desenhado com texto (a legenda está no topo do arquivo).
   Rode `npm test` depois de editar: os testes avisam linhas com tamanho errado, saídas para tiles bloqueados etc.
