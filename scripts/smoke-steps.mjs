@@ -43,6 +43,13 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await expectScene('World');
   let s = await st();
   assert(s.trainer === 'marina' && s.map === 'vila' && s.x === 14 && s.y === 7, `começa na vila com Marina (${JSON.stringify(s)})`);
+  // introdução do Ancião ao começar
+  await page.waitForFunction(() => window.__game.scene.getScene('World').dialog?.open, null, { timeout: 4000 }).catch(() => {});
+  await shot('05a-intro');
+  for (let i = 0; i < 10 && (await world('w.dialog.open')); i++) await press('Enter', 400);
+  assert(await page.evaluate(() => !!window.__state.get().flags.intro), 'introdução mostrada');
+  // o encontro com o Noctis na saída da vila é testado na etapa 7
+  await page.evaluate(() => { window.__state.get().flags.noctis1 = true; });
   await shot('05-vila');
   if (mobile) await touchPad({ page, wait });
   await walk('ArrowLeft', 1); await walk('ArrowRight', 1);
@@ -126,7 +133,7 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   console.log('    moedas:', money);
 
   // Segunda batalha: fugir (garante estar na floresta, caso tenha perdido e voltado à vila)
-  await page.evaluate(() => { Object.assign(window.__state.get(), { mapId: 'floresta', x: 8, y: 20 }); window.__game.scene.getScene('World').scene.restart(); });
+  await page.evaluate(() => { Object.assign(window.__state.get(), { mapId: 'floresta', x: 8, y: 20 }); window.__game.scene.getScene('World').scene.restart({}); });
   await expectScene('World');
   await page.evaluate(() => { const w = window.__game.scene.getScene('World'); w.startEncounter(); });
   await expectScene('Battle');
@@ -135,6 +142,9 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await press('ArrowRight', 150);
   guard = 0;
   while ((await active('Battle')) && guard++ < 60) await press('Enter', 300);
+  // se a fuga falhar o inimigo ataca; perder também é um fim válido
+  await page.waitForFunction(() => !window.__game.scene.isActive('Battle'), null, { timeout: 5000 }).catch(() => {});
+  if (await active('GameOver')) { await wait(600); await press('Enter'); }
   await expectScene('World');
 
   // ---------------- Etapa 4: XP, aprender golpe (escolha) e evolução
@@ -171,7 +181,7 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
 
   // ---------------- Etapa 5: passeio pelos biomas (entra pela saída de baixo e anda até a de cima)
   for (const map of ['praia', 'planalto', 'canion', 'picos', 'ruinas']) {
-    await page.evaluate((m) => { Object.assign(window.__state.get(), { mapId: m, x: 14, y: 22, facing: 'up' }); const w = window.__game.scene.getScene('World'); w.scene.restart(); }, map);
+    await page.evaluate((m) => { Object.assign(window.__state.get(), { mapId: m, x: 14, y: 22, facing: 'up' }); const w = window.__game.scene.getScene('World'); w.scene.restart({}); }, map);
     await expectScene('World');
     await page.evaluate(() => { window.__game.scene.getScene('World').encounterRate = 0; });
     await walk('ArrowUp', 2);
@@ -186,7 +196,7 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
 
   // ---------------- Etapa 6: loja, captura, Caixa, equipe e mochila
   // Loja: porta em (23,5); fica em (23,6) e sobe
-  await page.evaluate(() => { window.__state.healParty(); Object.assign(window.__state.get(), { mapId: 'vila', x: 23, y: 6, facing: 'up', money: 1000 }); window.__game.scene.getScene('World').scene.restart(); });
+  await page.evaluate(() => { window.__state.healParty(); Object.assign(window.__state.get(), { mapId: 'vila', x: 23, y: 6, facing: 'up', money: 1000 }); window.__game.scene.getScene('World').scene.restart({}); });
   await expectScene('World');
   await walk('ArrowUp', 1);
   await expectScene('Shop');
@@ -256,6 +266,72 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await shot('35-inventory');
   await press('Escape');
   await expectScene('World');
+
+  // ---------------- Etapa 7: história (Noctis e amigos)
+  const flags = () => page.evaluate(() => window.__state.get().flags);
+  const goto = (m, x, y, facing, extra = '') => page.evaluate(([m, x, y, f, extra]) => {
+    const s = window.__state.get();
+    Object.assign(s, { mapId: m, x, y, facing: f });
+    if (extra) new Function('s', extra)(s);
+    window.__game.scene.getScene('World').scene.restart({});
+  }, [m, x, y, facing, extra]);
+  /** passa por diálogos e batalha apertando Enter até voltar ao mapa sem diálogo */
+  const playThrough = async (label, until = () => page.evaluate(() => window.__game.scene.isActive('World') && !window.__game.scene.getScene('World').dialog.open && !window.__game.scene.getScene('World').moving)) => {
+    let g = 0, sawBattle = false;
+    while (g++ < 300) {
+      if (await active('Battle')) {
+        if (!sawBattle) { sawBattle = true; await wait(1800); await shot(`40-${label}-battle`); }
+      } else if (await until()) break;
+      await press('Enter', 300);
+    }
+    return sawBattle;
+  };
+  // equipe forte para os testes de história
+  const strong = "s.party.length = 1; const p = window.__create('aquaris_evo', 60); s.party[0] = p;";
+
+  // Noctis 1: saída da vila
+  await goto('vila', 14, 3, 'up', strong + "s.flags.noctis1 = false;");
+  await expectScene('World');
+  await walk('ArrowUp', 2);
+  await wait(800);
+  assert(await world('w.dialog.open'), 'Noctis aparece na saída da vila');
+  await shot('41-noctis1');
+  assert(await playThrough('noctis1'), 'batalha contra Noctis começou');
+  assert((await flags()).noctis1 === true, 'venceu Noctis 1 e a história avançou');
+
+  // Amigo: Kael na floresta (20,11) — jogador em (19,11) olhando para a direita
+  await goto('floresta', 19, 11, 'right');
+  await expectScene('World');
+  await press('Enter', 800);
+  assert(await world('w.dialog.open'), 'Kael pergunta se quer batalhar');
+  assert(await playThrough('kael'), 'batalha contra Kael começou');
+  assert((await flags()).beat_kael === true, 'venceu Kael');
+
+  // Noctis 3: chefe final nas Ruínas
+  await goto('ruinas', 15, 5, 'up', strong + "s.flags.noctis2 = true;");
+  await expectScene('World');
+  await walk('ArrowUp', 2);
+  await wait(600);
+  assert(await world('w.dialog.open'), 'Noctis espera no altar');
+  await playThrough('noctis3', () => page.evaluate(() => window.__game.scene.isActive('GameOver')));
+  await expectScene('GameOver');
+  await shot('42-fim');
+  assert((await flags()).noctis3 === true, 'zerou: venceu Noctis nas Ruínas');
+  await press('Enter');
+  await expectScene('World');
+
+  // ---------------- Etapa 8: save — recarrega o site e continua
+  const saved = await st();
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.reload();
+  await page.waitForFunction(() => window.__game?.scene.isActive('Menu'), null, { timeout: 15000 });
+  await wait(600);
+  await shot('43-menu-continuar');
+  await press('Enter'); // Continuar
+  await expectScene('World');
+  const loaded = await st();
+  const fl = await flags();
+  assert(loaded.map === saved.map && loaded.x === saved.x && loaded.y === saved.y && fl.noctis3 === true, `progresso restaurado após recarregar (${JSON.stringify(loaded)})`);
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

@@ -1,11 +1,27 @@
 /**
- * O layout do jogo usa coordenadas de 960×540, mas a renderização é em Full HD:
- * o canvas tem 1920×1080 e as câmeras usam zoom 2. Textos e texturas são gerados
- * em resolução dobrada para ficarem nítidos.
+ * O layout do jogo usa coordenadas de 960×540. A renderização acompanha a tela
+ * até Full HD: num monitor 1080p o canvas tem 1920×1080 (zoom 2); em telas ou
+ * janelas menores ele desenha menos pixels e fica mais leve. Texturas geradas e
+ * textos são sempre criados em 2x, para ficarem nítidos.
  */
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
-export const RENDER_SCALE = 2;
+export const MAX_RENDER_SCALE = 2; // 1920×1080
+
+function pickRenderScale(): number {
+  if (typeof window === 'undefined') return MAX_RENDER_SCALE;
+  const forced = Number(new URLSearchParams(window.location.search).get('scale'));
+  const clamp = (v: number) => Math.min(MAX_RENDER_SCALE, Math.max(1, v));
+  if (forced) return clamp(forced);
+  const dpr = window.devicePixelRatio || 1;
+  const fit = Math.min((window.innerWidth * dpr) / GAME_WIDTH, (window.innerHeight * dpr) / GAME_HEIGHT);
+  return clamp(Math.ceil(fit * 4) / 4); // passos de 0,25
+}
+
+/** Zoom das câmeras (tamanho do canvas = 960×540 × RENDER_SCALE). Use ?scale=2 para forçar Full HD. */
+export const RENDER_SCALE = pickRenderScale();
+/** Escala das texturas geradas e dos textos (sempre 2x = nítido até Full HD). */
+export const TEXTURE_SCALE = 2;
 export const TILE = 32;
 
 export const FONT = '"Trebuchet MS", "Segoe UI", Verdana, sans-serif';

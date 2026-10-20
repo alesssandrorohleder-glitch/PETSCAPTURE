@@ -3,7 +3,7 @@ import type { BiomeTheme, BuildingKind, Facing } from '../data/maps';
 import { getSpecies, type PlaceholderShape } from '../data/monsters';
 import { ELEMENTS } from '../data/elements';
 import type { TrainerData } from '../data/trainers';
-import { RENDER_SCALE, TILE } from '../config';
+import { TEXTURE_SCALE, TILE } from '../config';
 
 /**
  * Se existir uma imagem carregada com a chave `key` (arquivo em public/assets),
@@ -15,9 +15,9 @@ function ensure(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g
   if (!scene.textures.exists(ph)) {
     // desenhado em resolução dobrada (Full HD); quem exibe usa setDisplaySize/fitInto
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    g.scaleCanvas(RENDER_SCALE, RENDER_SCALE);
+    g.scaleCanvas(TEXTURE_SCALE, TEXTURE_SCALE);
     draw(g);
-    g.generateTexture(ph, w * RENDER_SCALE, h * RENDER_SCALE);
+    g.generateTexture(ph, w * TEXTURE_SCALE, h * TEXTURE_SCALE);
     g.destroy();
   }
   return ph;

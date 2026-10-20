@@ -5,6 +5,7 @@ import { getSpecies } from '../data/monsters';
 import { TRAINERS, type TrainerData } from '../data/trainers';
 import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
+import { SaveManager } from '../systems/SaveManager';
 import { fitInto, monsterTexture, trainerPortrait } from '../systems/Placeholders';
 import { DialogBox } from '../ui/DialogBox';
 import { makeText } from '../ui/text';
@@ -94,6 +95,7 @@ export class TrainerSelectScene extends BaseScene {
     const answer = await this.dialog.ask(`Começar a jornada com ${t.name} e ${pet.name}?`, ['Sim', 'Não']);
     if (answer !== 0) return;
     GameState.newGame(t.id);
+    SaveManager.save();
     this.goTo(SCENES.World);
   }
 }

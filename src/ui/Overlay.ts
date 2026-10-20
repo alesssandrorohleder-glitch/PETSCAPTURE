@@ -42,3 +42,11 @@ export function choose(scene: Phaser.Scene, title: string, options: ChoiceOption
 export async function notify(scene: Phaser.Scene, text: string): Promise<void> {
   await choose(scene, text, [{ label: 'OK' }], 560);
 }
+
+/** Aviso rápido no canto da tela que some sozinho (ex.: "Progresso salvo"). */
+export function toast(scene: Phaser.Scene, text: string): void {
+  const t = makeText(scene, GAME_WIDTH - 20, GAME_HEIGHT - 20, text, 16, UI.accent, { fontStyle: 'bold', backgroundColor: '#14112bcc', padding: { x: 10, y: 6 } })
+    .setOrigin(1, 1)
+    .setDepth(9900);
+  scene.tweens.add({ targets: t, alpha: 0, delay: 1400, duration: 500, onComplete: () => t.destroy() });
+}

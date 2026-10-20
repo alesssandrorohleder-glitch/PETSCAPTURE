@@ -104,3 +104,53 @@ describe('equilíbrio dos biomas (equipe realista)', () => {
     });
   }
 });
+
+import { FRIEND_BATTLES, RIVAL } from '../src/data/story';
+
+/** Vitória contra um treinador (equipe inimiga completa, com trocas). */
+function trainerWinRate(team: [string, number][], enemy: [string, number][], n = 200): number {
+  let wins = 0;
+  for (let i = 0; i < n; i++) {
+    const party = team.map(([sp, lv]) => createMonster(sp, lv));
+    const foes = enemy.map(([sp, lv]) => createMonster(sp, lv));
+    const lead = bestLead(party, foes[0]);
+    [party[0], party[lead]] = [party[lead], party[0]];
+    const b = new BattleEngine({ party, enemies: foes, kind: 'trainer' });
+    for (let t = 0; t < 120 && !b.over; t++) {
+      const ev = b.turn({ kind: 'move', move: bestMove(b) });
+      if (ev.some((x) => x.t === 'needSwitch')) {
+        const alive = party.map((m, k) => [m, k] as const).filter(([m]) => m.hp > 0);
+        const k = bestLead(alive.map(([m]) => m), b.active('enemy').mon);
+        b.sendReplacement(alive[k][1]);
+      }
+    }
+    if (b.outcome === 'win') wins++;
+  }
+  return wins / n;
+}
+
+/** Equipe típica em cada ponto da história (pet inicial + capturas dos biomas anteriores). */
+const STORY: [string, number, string[], [string, number][]][] = [
+  ['Noctis 1 (saída da vila)', 5, [], RIVAL.noctis1.team],
+  // desafio opcional: dá para recusar e voltar depois, com o pet um pouco mais forte
+  ['Kael (floresta)', 8, [], FRIEND_BATTLES.kael.team],
+  ['Marina (praia)', 10, ['verdakor'], FRIEND_BATTLES.marina.team],
+  ['Raijin (planalto)', 13, ['verdakor', 'conchilo'], FRIEND_BATTLES.raijin.team],
+  ['Bruno (cânion)', 17, ['verdakor', 'conchilo', 'zumbolt'], FRIEND_BATTLES.bruno.team],
+  ['Noctis 2 (cânion)', 17, ['verdakor', 'conchilo', 'zumbolt'], RIVAL.noctis2.team],
+  ['Yuki (picos)', 21, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco'], FRIEND_BATTLES.yuki.team],
+  ['Noctis 3 (final)', 28, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco', 'nevasco'], RIVAL.noctis3.team],
+];
+
+describe('equilíbrio da história', () => {
+  for (const [name, level, caught, enemy] of STORY) {
+    it(`${name}: dá para vencer com uma equipe típica`, () => {
+      const rates = TRAINERS.filter((x) => x.selectable).map((t) => {
+        const team: [string, number][] = [[level >= 10 ? `${t.starter}_evo` : t.starter, level], ...caught.map((c) => [c, level - 2] as [string, number])];
+        return [t.starter, trainerWinRate(team, enemy)] as const;
+      });
+      console.log(`  ${name}: ` + rates.map(([n, r]) => `${n} ${(r * 100).toFixed(0)}%`).join(', '));
+      for (const [, r] of rates) expect(r).toBeGreaterThan(0.35);
+    });
+  }
+});

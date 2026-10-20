@@ -7,7 +7,11 @@ import { Controls } from '../systems/Controls';
 import { GameState, type PlayerState } from '../systems/GameState';
 import { createMonster } from '../systems/Monster';
 import { rollEncounter } from '../systems/Encounters';
+import { SaveManager } from '../systems/SaveManager';
+import { toast } from '../ui/Overlay';
 import type { BattleData } from './BattleScene';
+import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
+import { getSpecies } from '../data/monsters';
 import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
@@ -18,6 +22,19 @@ import { BaseScene, fitCamera } from './BaseScene';
 const STEP_MS = 160;
 const DELTA: Record<Facing, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const OPPOSITE: Record<Facing, Facing> = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+/** O que fazer ao voltar de uma batalha de história (só acontece se o jogador venceu). */
+export interface AfterBattle {
+  flag: string;
+  speaker: string;
+  lines: string[];
+  /** remove o NPC temporário (Noctis "vai embora") */
+  final?: boolean;
+}
+
+export interface WorldData {
+  after?: AfterBattle;
+}
 
 interface NpcObj {
   def: NpcDef;
@@ -42,7 +59,7 @@ export class WorldScene extends BaseScene {
     super(SCENES.World);
   }
 
-  create(): void {
+  create(data?: WorldData): void {
     this.setupScene();
     if (!GameState.has()) GameState.newGame(TRAINERS[0].id); // atalho para testes
     this.st = GameState.get();
@@ -66,14 +83,116 @@ export class WorldScene extends BaseScene {
 
     this.buildHud();
     AudioManager.playMusic(this, this.map.music);
+
+    // salvamento automático: ao entrar no mapa e a cada 30 s
+    if (data?.after) this.st.flags[data.after.flag] = true;
+    SaveManager.save();
+    this.time.addEvent({ delay: 30000, loop: true, callback: () => SaveManager.save() });
+
+    if (data?.after) this.time.delayedCall(350, () => void this.afterBattle(data.after!));
+    else if (!this.st.flags.intro) this.time.delayedCall(450, () => void this.intro());
+  }
+
+  // ------------------------------------------------------------------ história
+  private get names(): [string, string] {
+    const t = getTrainer(this.st.trainerId);
+    return [t.name, getSpecies(t.starter).name];
+  }
+
+  private lines(l: string[]): string[] {
+    return fill(l, ...this.names);
+  }
+
+  private async intro(): Promise<void> {
+    this.moving = true;
+    await this.dialog.show(this.lines(INTRO), 'Ancião Oren');
+    this.st.flags.intro = true;
+    SaveManager.save();
+    this.moving = false;
+  }
+
+  private async afterBattle(a: AfterBattle): Promise<void> {
+    this.moving = true;
+    await this.dialog.show(this.lines(a.lines), a.speaker);
+    this.moving = false;
+    if (a.final) {
+      const [nome] = this.names;
+      this.goTo(SCENES.GameOver, {
+        victory: true,
+        title: 'Fim da Jornada!',
+        message: `Parabéns, ${nome}! Você venceu Noctis nas Ruínas da Lua e se tornou um grande domador.\nContinue explorando, capturando e completando sua equipe!`,
+      });
+    }
+  }
+
+  /** Inicia uma batalha contra treinador; ao vencer, volta ao mapa com as falas de vitória. */
+  private startTrainerBattle(def: TrainerBattleDef): void {
+    const trainer = getTrainer(def.trainer);
+    const data: BattleData = {
+      kind: 'trainer',
+      enemies: def.team.map(([sp, lv]) => createMonster(sp, lv)),
+      enemyName: trainer.name,
+      trainerId: trainer.id,
+      prize: def.prize,
+      intro: this.lines(def.intro).slice(-1)[0],
+      next: { scene: SCENES.World, data: { after: { flag: def.flag, speaker: trainer.name, lines: def.win, final: def.final } } satisfies WorldData },
+    };
+    this.moving = true;
+    this.cameras.main.flash(250, 255, 255, 255);
+    this.time.delayedCall(260, () => this.goTo(SCENES.Battle, data));
+  }
+
+  /** Encontro com o Noctis: ele aparece, fala e desafia. */
+  private async rivalEvent(event: keyof typeof RIVAL): Promise<void> {
+    const def = RIVAL[event];
+    this.moving = true;
+    let sprite = this.npcs.find((n) => n.def.id === 'noctis')?.sprite;
+    if (!sprite) {
+      // surge à frente do jogador
+      const look = getTrainer('noctis').look;
+      sprite = this.addToWorld(this.add.image(this.st.x * TILE + TILE / 2, (this.st.y - 1) * TILE, '__DEFAULT').setOrigin(0.5, 1).setDepth(this.st.y * TILE).setAlpha(0));
+      this.applySprite(sprite, 'noctis', look, 'down');
+      this.tweens.add({ targets: sprite, alpha: 1, y: this.st.y * TILE, duration: 500 });
+    }
+    this.setFacing('up');
+    AudioManager.playMusic(this, 'music/noctis');
+    const intro = this.lines(def.intro);
+    await this.dialog.show(intro.slice(0, -1).length ? intro.slice(0, -1) : intro, 'Noctis');
+    if (def.final) {
+      const ok = await this.dialog.ask('Pronto para a batalha final?', ['Sim', 'Ainda não']);
+      if (ok !== 0) {
+        await this.dialog.show(['Volte quando tiver coragem.'], 'Noctis');
+        this.moving = false;
+        this.tryMove('down');
+        return;
+      }
+    }
+    this.startTrainerBattle(def);
+  }
+
+  private async friendEvent(npc: NpcObj, def: TrainerBattleDef): Promise<void> {
+    this.moving = true;
+    const ans = await this.dialog.ask(this.lines(def.intro)[0], ['Batalhar!', 'Agora não'], npc.def.name);
+    if (ans === 0) this.startTrainerBattle(def);
+    else this.moving = false;
   }
 
   /**
    * Duas câmeras em Full HD: a principal segue o jogador pelo mapa (camada do mundo)
    * e a de interface fica parada por cima (HUD, diálogos, menus, direcional).
    */
+  private worldLayer!: Phaser.GameObjects.Layer;
+
+  /** Coloca no mapa (câmera do mundo) um objeto criado depois do início da cena. */
+  private addToWorld<T extends Phaser.GameObjects.GameObject>(obj: T): T {
+    this.worldLayer.add(obj);
+    obj.cameraFilter = 0; // depois do add: entrar na camada dispara o evento que esconde da câmera do mapa
+    return obj;
+  }
+
   private setupCameras(): void {
     const world = this.add.layer();
+    this.worldLayer = world;
     world.add(this.children.list.filter((o) => (o as unknown) !== world));
     const cam = this.cameras.main;
     cam.setZoom(RENDER_SCALE);
@@ -81,7 +200,7 @@ export class WorldScene extends BaseScene {
     cam.startFollow(this.player, true, 0.2, 0.2, 0, TILE / 2);
     cam.setRoundPixels(true);
 
-    const ui = fitCamera(this.cameras.add(0, 0, GAME_WIDTH * RENDER_SCALE, GAME_HEIGHT * RENDER_SCALE));
+    const ui = fitCamera(this.cameras.add(0, 0, this.scale.width, this.scale.height));
     ui.ignore(world);
     // tudo que for criado depois (interface) só aparece na câmera de interface
     const hide = (obj: Phaser.GameObjects.GameObject) => cam.ignore(obj);
@@ -118,7 +237,7 @@ export class WorldScene extends BaseScene {
       }
     }
     for (const s of this.map.signs) this.add.image(s.x * TILE, s.y * TILE, signTexture(this)).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(s.y * TILE + 1);
-    for (const def of this.map.npcs) {
+    for (const def of [...this.map.npcs, ...storyNpcs(this.map.id)]) {
       if (def.look === this.st.trainerId) continue; // o jogador não encontra a si mesmo
       const look = typeof def.look === 'string' ? getTrainer(def.look).look : def.look;
       const sprite = this.add.image(def.x * TILE + TILE / 2, (def.y + 1) * TILE, '__DEFAULT').setOrigin(0.5, 1).setDepth(def.y * TILE + 2);
@@ -220,6 +339,11 @@ export class WorldScene extends BaseScene {
   private onStep(x: number, y: number): void {
     const warp = this.map.warps.find((w) => w.x === x && w.y === y);
     if (warp) return this.warp(warp);
+    const f = this.st.flags;
+    const trig = TRIGGERS.find(
+      (t) => t.map === this.map.id && !f[RIVAL[t.event].flag] && (!t.requires || f[t.requires]) && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h,
+    );
+    if (trig) return void this.rivalEvent(trig.event);
     const ch = this.map.grid[y][x];
     if (TILES[ch].encounter && Math.random() < this.encounterRate) this.startEncounter();
   }
@@ -240,7 +364,7 @@ export class WorldScene extends BaseScene {
     Object.assign(this.st, { mapId: w.to, x: w.tx, y: w.ty, facing: w.facing });
     this.moving = true;
     for (const c of this.cameras.cameras) c.fadeOut(180, 0, 0, 0);
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.restart());
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.restart({})); // {} evita repetir os dados da última entrada (ex.: falas pós-batalha)
   }
 
   // ------------------------------------------------------------------ interação
@@ -252,7 +376,9 @@ export class WorldScene extends BaseScene {
     const npc = this.npcAt(tx, ty);
     if (npc) {
       this.applySprite(npc.sprite, npc.def.id, npc.look, OPPOSITE[this.st.facing]);
-      void this.dialog.show(npc.def.dialog, npc.def.name);
+      const battle = FRIEND_BATTLES[npc.def.id];
+      if (battle && !this.st.flags[battle.flag]) void this.friendEvent(npc, battle);
+      else void this.dialog.show(this.lines(battle?.after ?? npc.def.dialog), npc.def.name);
       return;
     }
     const sign = this.map.signs.find((s) => s.x === tx && s.y === ty);
@@ -294,13 +420,20 @@ export class WorldScene extends BaseScene {
     const box = this.add.container(0, 0).setDepth(9500);
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.4).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.toggleMenu());
-    box.add([shade, makePanel(this, x - 20, 70, 260, 430)]);
-    box.add(makeText(this, x + 110, 474, `Moedas: ${this.st.money}`, 18, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
+    box.add([shade, makePanel(this, x - 20, 40, 260, 480)]);
+    box.add(makeText(this, x + 110, 498, `Moedas: ${this.st.money}`, 18, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
     const list = new MenuList(
       this,
       [
         { label: 'Equipe', onSelect: () => this.goTo(SCENES.Party) },
-        { label: 'Inventário', onSelect: () => this.goTo(SCENES.Inventory) },
+        { label: 'Mochila', onSelect: () => this.goTo(SCENES.Inventory) },
+        {
+          label: 'Salvar',
+          onSelect: () => {
+            this.toggleMenu();
+            toast(this, SaveManager.save() ? '✓ Jogo salvo' : 'Não foi possível salvar neste navegador');
+          },
+        },
         {
           label: `Som: ${Settings.get().soundOn ? 'Ligado' : 'Desligado'}`,
           onSelect: () => {
@@ -312,7 +445,7 @@ export class WorldScene extends BaseScene {
         { label: 'Menu Inicial', onSelect: () => this.goTo(SCENES.Menu) },
         { label: 'Fechar', onSelect: () => this.toggleMenu() },
       ],
-      { x, y: 90, itemWidth: 220, itemHeight: 56, gap: 14 },
+      { x, y: 58, itemWidth: 220, itemHeight: 54, gap: 10 },
     );
     box.add(list);
     fixToCamera(box);
