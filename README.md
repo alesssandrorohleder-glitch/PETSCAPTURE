@@ -25,7 +25,7 @@ npm run smoke      # teste automático no navegador (após o build) — precisa 
 npm run cover      # gera public/og-cover.png (imagem de compartilhamento) a partir do jogo
 ```
 
-Endereços úteis para testar: `?ads=sim|test|live|off` (modo dos anúncios), `?scale=1|2`
+Endereços úteis para testar: `?gallery=1` (galeria com todas as espécies), `?ads=sim|test|live|off` (modo dos anúncios), `?scale=1|2`
 (resolução: 2 = Full HD) e `?pad=1` (direcional de toque no PC).
 
 O progresso é **salvo automaticamente** no navegador (ao trocar de mapa, depois de batalhas, a cada 30 s e
@@ -72,7 +72,8 @@ scripts/      teste no navegador (smoke) e gerador da capa
 
 ## Suas imagens
 
-Enquanto uma imagem não existir, o jogo desenha um placeholder colorido no lugar.
+Enquanto uma imagem não existir, o jogo desenha uma criatura provisória no lugar, gerada a partir do
+elemento e da descrição de cada espécie (`src/systems/CreatureArt.ts`). Veja todas em `?gallery=1`.
 Basta colocar o arquivo com o **nome exato** na pasta indicada e recarregar
 (no `npm run dev`, a página recarrega sozinha). Formatos aceitos: `.png`, `.webp`, `.jpg`.
 

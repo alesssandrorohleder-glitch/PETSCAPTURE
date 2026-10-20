@@ -391,3 +391,16 @@ export function rootSpecies(id: string): string {
   }
   return cur;
 }
+
+/** Estágio na linha evolutiva: 0 = primeira forma, 1 = segunda, 2 = terceira. */
+export function evolutionStage(id: string): number {
+  let stage = 0;
+  let cur = id;
+  for (let guard = 0; guard < 10; guard++) {
+    const prev = Object.values(SPECIES).find((sp) => sp.evolution?.into === cur);
+    if (!prev) return stage;
+    stage++;
+    cur = prev.id;
+  }
+  return stage;
+}

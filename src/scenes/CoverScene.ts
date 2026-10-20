@@ -30,9 +30,8 @@ export class CoverScene extends Phaser.Scene {
     const pets = TRAINERS.map((t) => t.starter);
     pets.forEach((sp, i) => {
       const x = GAME_WIDTH / 2 + (i - (pets.length - 1) / 2) * 140;
-      const y = 360 + (i % 2) * 24;
-      this.add.ellipse(x, y + 62, 110, 22, 0x000000, 0.35);
-      fitInto(this.add.image(x, y, monsterTexture(this, sp)), 130, 130);
+      const y = 352 + (i % 2) * 22;
+      fitInto(this.add.image(x, y, monsterTexture(this, sp)), 165, 165);
     });
     makeText(this, GAME_WIDTH / 2, 500, 'Capture • Evolua • Vença o rival nas Ruínas da Lua', 22, UI.textDim).setOrigin(0.5);
   }

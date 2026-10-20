@@ -13,6 +13,7 @@ import { ShopScene } from './scenes/ShopScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { EvolutionScene } from './scenes/EvolutionScene';
 import { CoverScene } from './scenes/CoverScene';
+import { GalleryScene } from './scenes/GalleryScene';
 import { GameState } from './systems/GameState';
 import { createMonster } from './systems/Monster';
 import { SaveManager } from './systems/SaveManager';
@@ -21,7 +22,10 @@ import { Settings } from './systems/Settings';
 import { showConsentBanner } from './ui/ConsentBanner';
 
 // ?cover=1 abre só a arte de capa (usada por scripts/cover.mjs)
-const coverMode = new URLSearchParams(window.location.search).get('cover') === '1';
+const params = new URLSearchParams(window.location.search);
+const coverMode = params.get('cover') === '1';
+// ?gallery=1 abre a galeria com todas as espécies
+const galleryMode = params.get('gallery') === '1';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -34,7 +38,9 @@ const game = new Phaser.Game({
   input: { activePointers: 3 },
   scene: coverMode
     ? [CoverScene]
-    : [
+    : galleryMode
+      ? [GalleryScene]
+      : [
         BootScene,
         PreloadScene,
         MenuScene,
@@ -69,4 +75,4 @@ AdManager.init((paused) => {
   game.input.enabled = !paused;
   if (game.input.keyboard) game.input.keyboard.enabled = !paused;
 });
-if (!coverMode) showConsentBanner();
+if (!coverMode && !galleryMode) showConsentBanner();

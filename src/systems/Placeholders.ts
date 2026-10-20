@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { BiomeTheme, BuildingKind, Facing } from '../data/maps';
-import { getSpecies, type PlaceholderShape } from '../data/monsters';
-import { ELEMENTS } from '../data/elements';
+import { getSpecies } from '../data/monsters';
+import { drawCreature } from './CreatureArt';
 import type { TrainerData } from '../data/trainers';
 import { TEXTURE_SCALE, TILE } from '../config';
 
@@ -424,29 +424,6 @@ export function fxTexture(scene: Phaser.Scene, shape: FxShape): string {
 }
 
 // ---------------------------------------------------------------- monstros
-function shapePath(g: Phaser.GameObjects.Graphics, shape: PlaceholderShape, cx: number, cy: number, r: number): void {
-  const poly = (n: number, rot: number, inner?: number) => {
-    const pts: Phaser.Math.Vector2[] = [];
-    const total = inner ? n * 2 : n;
-    for (let i = 0; i < total; i++) {
-      const rr = inner && i % 2 ? inner : r;
-      const a = rot + (i / total) * Math.PI * 2;
-      pts.push(new Phaser.Math.Vector2(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr));
-    }
-    g.fillPoints(pts, true);
-    g.strokePoints(pts, true);
-  };
-  switch (shape) {
-    case 'circle': g.fillCircle(cx, cy, r); g.strokeCircle(cx, cy, r); break;
-    case 'triangle': poly(3, -Math.PI / 2); break;
-    case 'diamond': poly(4, -Math.PI / 2); break;
-    case 'square': g.fillRoundedRect(cx - r * 0.85, cy - r * 0.75, r * 1.7, r * 1.5, 14); g.strokeRoundedRect(cx - r * 0.85, cy - r * 0.75, r * 1.7, r * 1.5, 14); break;
-    case 'star': poly(5, -Math.PI / 2, r * 0.55); break;
-    case 'hexagon': poly(6, 0); break;
-    case 'blob': g.fillEllipse(cx, cy + r * 0.1, r * 2.1, r * 1.6); g.strokeEllipse(cx, cy + r * 0.1, r * 2.1, r * 1.6); break;
-  }
-}
-
 export const MONSTER_TEX_SIZE = 128;
 
 /** Monstro em batalha. Do lado do jogador usa <id>_back.png se existir; senão espelha a frente. */
@@ -457,38 +434,5 @@ export function monsterSprite(scene: Phaser.Scene, speciesId: string, back: bool
 
 export function monsterTexture(scene: Phaser.Scene, speciesId: string): string {
   const sp = getSpecies(speciesId);
-  const size = MONSTER_TEX_SIZE;
-  return ensure(scene, `monsters/${speciesId}`, size, size, (g) => {
-    const main = ELEMENTS[sp.types[0]].color;
-    const second = sp.types[1] ? ELEMENTS[sp.types[1]].color : shade(main, 1.3);
-    // estágio na linha evolutiva: 0 = base, 1 = 1ª evolução, 2 = 2ª evolução
-    const stage = /_evo2$/.test(sp.id) ? 2 : /_evo$/.test(sp.id) ? 1 : 0;
-    const evolved = stage > 0;
-    const r = stage === 2 ? 56 : evolved ? 52 : 42;
-    const cx = size / 2;
-    const cy = size / 2 + (evolved ? 4 : 10);
-    g.fillStyle(0x000000, 0.25).fillEllipse(cx, size - 8, r * 1.6, 12);
-    if (stage === 2) {
-      // halo atrás da cabeça (forma final)
-      g.fillStyle(second, 0.35).fillCircle(cx, cy - r * 0.35, r + 6);
-      g.lineStyle(3, second, 0.9).strokeCircle(cx, cy - r * 0.35, r + 6);
-    }
-    if (evolved) {
-      // "coroa" de pontas para formas evoluídas
-      g.fillStyle(second);
-      for (let i = 0; i < 5; i++) {
-        const a = -Math.PI / 2 + (i - 2) * 0.45;
-        g.fillTriangle(cx + Math.cos(a - 0.15) * r * 0.8, cy + Math.sin(a - 0.15) * r * 0.8, cx + Math.cos(a) * (r + 18), cy + Math.sin(a) * (r + 18), cx + Math.cos(a + 0.15) * r * 0.8, cy + Math.sin(a + 0.15) * r * 0.8);
-      }
-    }
-    g.lineStyle(4, shade(main, 0.55));
-    g.fillStyle(main);
-    shapePath(g, sp.shape, cx, cy, r);
-    g.fillStyle(second, 0.9).fillEllipse(cx, cy + r * 0.35, r * 0.9, r * 0.45);
-    // olhos
-    const ey = cy - r * 0.12;
-    g.fillStyle(0xffffff).fillCircle(cx - r * 0.3, ey, 9).fillCircle(cx + r * 0.3, ey, 9);
-    g.fillStyle(0x1a1a2e).fillCircle(cx - r * 0.27, ey + 1, 5).fillCircle(cx + r * 0.33, ey + 1, 5);
-    g.fillStyle(0xffffff).fillCircle(cx - r * 0.25, ey - 2, 1.8).fillCircle(cx + r * 0.35, ey - 2, 1.8);
-  });
+  return ensure(scene, `monsters/${speciesId}`, MONSTER_TEX_SIZE, MONSTER_TEX_SIZE, (g) => drawCreature(g, sp));
 }
