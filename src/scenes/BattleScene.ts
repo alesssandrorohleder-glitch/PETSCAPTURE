@@ -6,10 +6,10 @@ import { getMap } from '../data/maps';
 import { getMove, type MoveData } from '../data/moves';
 import { getSpecies } from '../data/monsters';
 import { AudioManager } from '../systems/AudioManager';
-import { BattleEngine, type BattleEvent, type BattleKind, type PlayerAction, type Side } from '../systems/BattleEngine';
+import { BattleEngine, STATUS_INFO, type BattleEvent, type BattleKind, type PlayerAction, type Side } from '../systems/BattleEngine';
 import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
-import { displayName, maxHp, type MonsterInstance } from '../systems/Monster';
+import { displayName, evolutionTarget, maxHp, MAX_MOVES, xpProgress, type MonsterInstance } from '../systems/Monster';
 import { monsterTexture } from '../systems/Placeholders';
 import { HealthBar } from '../ui/HealthBar';
 import { MenuList, type MenuItem } from '../ui/MenuList';
@@ -22,6 +22,8 @@ export interface BattleData {
   enemyName?: string;
   /** recompensa extra em moedas (treinadores) */
   prize?: number;
+  /** cena e dados para depois da batalha (padrão: World) */
+  next?: { scene: string; data?: object };
 }
 
 interface SideView {
@@ -33,6 +35,8 @@ interface SideView {
   types: Phaser.GameObjects.Container;
   hp: HealthBar;
   hpText?: Phaser.GameObjects.Text;
+  xp?: HealthBar;
+  status: Phaser.GameObjects.Container;
 }
 
 const MSG_Y = 404;
@@ -96,15 +100,20 @@ export class BattleScene extends BaseScene {
 
     const px = isEnemy ? 30 : 590;
     const py = isEnemy ? 26 : 278;
-    const ph = isEnemy ? 92 : 112;
+    const ph = isEnemy ? 92 : 118;
     makePanel(this, px, py, 340, ph);
     const name = makeText(this, px + 16, py + 10, '', 21, UI.text, { fontStyle: 'bold' });
     const level = makeText(this, px + 324, py + 12, '', 18, UI.accent).setOrigin(1, 0);
     const types = this.add.container(px + 16, py + 42);
     makeText(this, px + 16, py + 62, 'HP', 14, UI.accent, { fontStyle: 'bold' });
     const hp = new HealthBar(this, px + 44, py + 62, 280, 14);
-    const view: SideView = { sprite, home, size, name, level, types, hp };
-    if (!isEnemy) view.hpText = makeText(this, px + 324, py + 82, '', 16, UI.text).setOrigin(1, 0);
+    const status = this.add.container(px + 186, py + 42);
+    const view: SideView = { sprite, home, size, name, level, types, hp, status };
+    if (!isEnemy) {
+      view.hpText = makeText(this, px + 324, py + 80, '', 16, UI.text).setOrigin(1, 0);
+      makeText(this, px + 16, py + 98, 'XP', 12, '#7dd3fc', { fontStyle: 'bold' });
+      view.xp = new HealthBar(this, px + 44, py + 100, 200, 8, 0x38bdf8);
+    }
     this.refresh(side, view);
     return view;
   }
@@ -122,6 +131,18 @@ export class BattleScene extends BaseScene {
     });
     v.hp.set(mon.hp, maxHp(mon));
     v.hpText?.setText(`${mon.hp}/${maxHp(mon)}`);
+    v.xp?.set(xpProgress(mon), 1);
+    this.setStatusChip(v, mon);
+  }
+
+  /** Ícone de status (VEN, SONO, PAR, GELO) ao lado dos tipos. */
+  private setStatusChip(v: SideView, mon: MonsterInstance): void {
+    v.status.removeAll(true);
+    if (!mon.status) return;
+    const info = STATUS_INFO[mon.status];
+    v.status.add(this.add.rectangle(0, 0, 60, 16, info.color).setOrigin(0).setStrokeStyle(1, 0xffffff, 0.7));
+    v.status.add(makeText(this, 30, 8, info.short, 11, '#14112b', { fontStyle: 'bold' }).setOrigin(0.5));
+    this.tweens.add({ targets: v.status, alpha: 0.55, yoyo: true, repeat: -1, duration: 600 });
   }
 
   // ------------------------------------------------------------------ mensagens
@@ -211,7 +232,7 @@ export class BattleScene extends BaseScene {
     const box = this.add.container(0, 0).setDepth(500);
     box.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45).setOrigin(0).setInteractive());
     box.add(makePanel(this, 230, y, 500, h));
-    box.add(makeText(this, GAME_WIDTH / 2, y + 22, title, 22, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
+    box.add(makeText(this, GAME_WIDTH / 2, y + 24, title, title.length > 40 ? 15 : 22, UI.accent, { fontStyle: 'bold', align: 'center', wordWrap: { width: 470 } }).setOrigin(0.5));
     this.overlay = box;
     this.menu = new MenuList(this, items, { x: 260, y: y + 50, itemWidth: 440, itemHeight: 46, gap: 8, fontSize: 18, onCancel });
     this.menu.setDepth(501);
@@ -293,6 +314,24 @@ export class BattleScene extends BaseScene {
         case 'send':
           await this.animateSend(e.side);
           break;
+        case 'status':
+          this.setStatusChip(this.views[e.side], this.engine.active(e.side).mon);
+          break;
+        case 'buff':
+          await this.animateBuff(e.side, e.good);
+          break;
+        case 'xp':
+          if (e.uid === this.engine.active('player').mon.uid) await this.views.player.xp?.animateTo(xpProgress(this.engine.active('player').mon), 1, 500);
+          break;
+        case 'level':
+          if (e.uid === this.engine.active('player').mon.uid) {
+            this.refresh('player');
+            this.burst(this.views.player.sprite.x, this.views.player.sprite.y, 0xffd166, 16);
+          }
+          break;
+        case 'learnChoice':
+          await this.askForget(e.uid, e.move);
+          break;
         case 'needSwitch':
           this.showPartyMenu(true);
           return;
@@ -330,6 +369,41 @@ export class BattleScene extends BaseScene {
     }
   }
 
+  private async animateBuff(side: Side, good: boolean): Promise<void> {
+    const s = this.views[side].sprite;
+    const color = good ? 0x7dd3fc : 0xf87171;
+    for (let i = 0; i < 6; i++) {
+      const arrow = makeText(this, s.x - 50 + i * 20, s.y + (good ? 40 : -40), good ? '▲' : '▼', 20, Phaser.Display.Color.IntegerToColor(color).rgba).setOrigin(0.5);
+      this.tweens.add({ targets: arrow, y: arrow.y + (good ? -70 : 70), alpha: 0, duration: 600, delay: i * 40, onComplete: () => arrow.destroy() });
+    }
+    await tweenP(this, { targets: s, alpha: 0.6, duration: 120, yoyo: true, repeat: 1 });
+  }
+
+  /** O pet quer aprender um golpe mas já tem 4: escolher qual esquecer (ou nenhum). */
+  private askForget(uid: string, moveId: string): Promise<void> {
+    const mon = GameState.get().party.find((m) => m.uid === uid);
+    if (!mon) return Promise.resolve();
+    const nm = getMove(moveId);
+    return new Promise((resolve) => {
+      const done = async (text: string) => {
+        this.clearMenus();
+        await this.say(text);
+        resolve();
+      };
+      const items: MenuItem[] = mon.moves.map((id, i) => ({
+        label: `Esquecer ${getMove(id).name}`,
+        hint: `${ELEMENTS[getMove(id).type].name} • ${getMove(id).power > 0 ? `Poder ${getMove(id).power}` : 'Efeito'}`,
+        onSelect: () => {
+          const old = getMove(mon.moves[i]).name;
+          mon.moves[i] = moveId;
+          void done(`${displayName(mon)} esqueceu ${old} e aprendeu ${nm.name}!`);
+        },
+      }));
+      items.push({ label: `Não aprender ${nm.name}`, onSelect: () => void done(`${displayName(mon)} não aprendeu ${nm.name}.`) });
+      this.showOverlay(`${displayName(mon)} quer aprender ${nm.name} (${ELEMENTS[nm.type].name}${nm.power ? `, Poder ${nm.power}` : ''}), mas já sabe ${MAX_MOVES} golpes.`, items);
+    });
+  }
+
   private async animateHp(side: Side, hp: number, max: number, strong?: boolean): Promise<void> {
     const v = this.views[side];
     if (strong) this.cameras.main.shake(200, 0.008);
@@ -353,15 +427,18 @@ export class BattleScene extends BaseScene {
   private async endBattle(): Promise<void> {
     const st = GameState.get();
     const outcome = this.engine.outcome;
+    this.engine.cleanup();
     if (outcome === 'win') {
       const prize = (this.data_.prize ?? 0) + this.data_.enemies.reduce((s, m) => s + m.level * 8, 0);
       st.money += prize;
       await this.say(`Você ganhou ${prize} moedas!`, 1600);
-      if (this.data_.kind === 'trainer') {
-        this.goTo(SCENES.GameOver, { victory: true, message: `Você venceu ${this.data_.enemyName}! +${prize} moedas` });
-        return;
+      let next = this.data_.next ?? { scene: SCENES.World };
+      if (this.data_.kind === 'trainer' && !this.data_.next) {
+        next = { scene: SCENES.GameOver, data: { victory: true, message: `Você venceu ${this.data_.enemyName}! +${prize} moedas` } };
       }
-      this.goTo(SCENES.World);
+      const evolving = st.party.filter((m) => m.hp > 0 && evolutionTarget(m)).map((m) => m.uid);
+      if (evolving.length) this.goTo(SCENES.Evolution, { uids: evolving, next });
+      else this.goTo(next.scene, next.data);
     } else if (outcome === 'lose') {
       GameState.healParty();
       Object.assign(st, { mapId: st.respawn.mapId, x: st.respawn.x, y: st.respawn.y, facing: 'down' });

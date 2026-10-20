@@ -27,4 +27,5 @@ export const SCENES = {
   Inventory: 'Inventory',
   Shop: 'Shop',
   GameOver: 'GameOver',
+  Evolution: 'Evolution',
 } as const;

@@ -127,6 +127,32 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   guard = 0;
   while ((await active('Battle')) && guard++ < 60) await press('Enter', 300);
   await expectScene('World');
+
+  // ---------------- Etapa 4: XP, aprender golpe (escolha) e evolução
+  await page.evaluate(() => {
+    const pet = window.__state.get().party[0];
+    pet.level = 9; pet.xp = 999; pet.moves = ['jato_dagua', 'bolha_prisao', 'onda_cortante', 'cura_mare'];
+    pet.hp = 25; pet.status = null;
+    window.__game.scene.getScene('World').startEncounter();
+  });
+  await expectScene('Battle');
+  await wait(2500);
+  let sawLearn = false, sawEvo = false;
+  guard = 0;
+  while (guard++ < 200) {
+    if (await active('Evolution')) { sawEvo = true; break; }
+    if (!(await active('Battle'))) break;
+    const overlay = await page.evaluate(() => !!window.__game.scene.getScene('Battle').overlay);
+    if (overlay && !sawLearn) { sawLearn = true; await shot('13-learn-move'); }
+    await press('Enter', 250);
+  }
+  assert(sawLearn, 'pediu para escolher golpe a esquecer');
+  assert(sawEvo, 'animação de evolução começou');
+  await wait(3500);
+  await shot('14-evolution');
+  await expectScene('World');
+  const pet = await page.evaluate(() => { const p = window.__state.get().party[0]; return { sp: p.species, lv: p.level, moves: p.moves }; });
+  assert(pet.sp === 'aquaris_evo' && pet.lv === 10 && pet.moves.includes('redemoinho'), `evoluiu e aprendeu (${JSON.stringify(pet)})`);
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

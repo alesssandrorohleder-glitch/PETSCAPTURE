@@ -49,8 +49,71 @@ export function supremeMove(species: string, level: number): string | null {
   return l?.move ?? null;
 }
 
+/** XP total necessário para estar no nível `level` (curva cúbica). */
+export const xpForLevel = (level: number): number => (level <= 1 ? 0 : level ** 3);
+export const MAX_LEVEL = 100;
+
+/** Progresso (0–1) dentro do nível atual, para a barra de XP. */
+export function xpProgress(m: Pick<MonsterInstance, 'level' | 'xp'>): number {
+  if (m.level >= MAX_LEVEL) return 1;
+  const a = xpForLevel(m.level);
+  const b = xpForLevel(m.level + 1);
+  return Math.max(0, Math.min(1, (m.xp - a) / (b - a)));
+}
+
+export interface LevelUpResult {
+  /** níveis alcançados, em ordem */
+  levels: number[];
+  /** golpes aprendidos automaticamente */
+  learned: string[];
+  /** golpes novos que exigem escolha (já tem 4) */
+  pending: string[];
+  /** golpe supremo desbloqueado */
+  supreme: string | null;
+}
+
+/**
+ * Soma XP e sobe de nível quantas vezes for preciso.
+ * A vida sobe junto com o máximo (o dano já sofrido é mantido).
+ */
+export function gainXp(m: MonsterInstance, amount: number): LevelUpResult {
+  const res: LevelUpResult = { levels: [], learned: [], pending: [], supreme: null };
+  m.xp += amount;
+  while (m.level < MAX_LEVEL && m.xp >= xpForLevel(m.level + 1)) {
+    const oldMax = maxHp(m);
+    m.level++;
+    if (m.hp > 0) m.hp += maxHp(m) - oldMax;
+    res.levels.push(m.level);
+    for (const l of getSpecies(m.species).learnset.filter((x) => x.level === m.level)) {
+      if (MOVES[l.move]?.supreme) res.supreme = l.move;
+      else if (m.moves.includes(l.move)) continue;
+      else if (m.moves.length < MAX_MOVES) {
+        m.moves.push(l.move);
+        res.learned.push(l.move);
+      } else res.pending.push(l.move);
+    }
+  }
+  return res;
+}
+
+/** Evolução pendente (nível atingido) ou null. */
+export function evolutionTarget(m: MonsterInstance): string | null {
+  const evo = getSpecies(m.species).evolution;
+  return evo && m.level >= evo.level ? evo.into : null;
+}
+
+/** Evolui mantendo nível, XP, golpes e a proporção de vida. */
+export function evolve(m: MonsterInstance): string {
+  const into = evolutionTarget(m);
+  if (!into) return m.species;
+  const ratio = m.hp / maxHp(m);
+  m.species = into;
+  m.hp = Math.max(m.hp > 0 ? 1 : 0, Math.round(maxHp(m) * ratio));
+  return into;
+}
+
 export function createMonster(species: string, level: number): MonsterInstance {
-  const m: MonsterInstance = { uid: newUid(), species, level, xp: 0, hp: 0, moves: movesForLevel(species, level), status: null };
+  const m: MonsterInstance = { uid: newUid(), species, level, xp: xpForLevel(level), hp: 0, moves: movesForLevel(species, level), status: null };
   m.hp = maxHp(m);
   return m;
 }

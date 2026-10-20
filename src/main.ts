@@ -11,6 +11,7 @@ import { PartyScene } from './scenes/PartyScene';
 import { InventoryScene } from './scenes/InventoryScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameOverScene } from './scenes/GameOverScene';
+import { EvolutionScene } from './scenes/EvolutionScene';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -33,6 +34,7 @@ const game = new Phaser.Game({
     InventoryScene,
     ShopScene,
     GameOverScene,
+    EvolutionScene,
   ],
 });
 
