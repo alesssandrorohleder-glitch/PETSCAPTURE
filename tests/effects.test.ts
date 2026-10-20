@@ -31,9 +31,9 @@ describe('status', () => {
 
   it('Esporos do Sono: dorme 1-2 turnos e acorda', () => {
     const { b, p } = setup('verdakor', 12, 'ignis', 3);
-    b.turn({ kind: 'move', move: 'esporos_sono' });
+    const first = b.turn({ kind: 'move', move: 'esporos_sono' });
     expect(b.active('enemy').mon.status).toBe('adormecido');
-    const all: string[] = [];
+    const all: string[] = [texts(first)];
     for (let i = 0; i < 4 && !b.over; i++) all.push(texts(b.turn({ kind: 'move', move: 'folha_navalha' })));
     const joined = all.join(' ');
     expect(joined).toContain('dormindo');
@@ -183,5 +183,19 @@ describe('XP, nível e evolução', () => {
   it('XP de treinador vale 1.5x', () => {
     const e = createMonster('umbrel', 10);
     expect(xpReward(e, 'trainer')).toBe(Math.floor(xpReward(e, 'wild') * 1.5));
+  });
+});
+
+describe('linha do Verdakor (3 formas)', () => {
+  it('Verdaki → Verdamantis (Nv 10) → Verdakor (Nv 20)', () => {
+    const m = createMonster('verdaki', 9);
+    gainXp(m, xpForLevel(10) - m.xp);
+    expect(evolutionTarget(m)).toBe('verdamantis');
+    evolve(m);
+    gainXp(m, xpForLevel(20) - m.xp);
+    expect(evolutionTarget(m)).toBe('verdakor');
+    evolve(m);
+    expect(m.species).toBe('verdakor');
+    expect(evolutionTarget(m)).toBeNull();
   });
 });

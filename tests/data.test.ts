@@ -136,3 +136,9 @@ describe('treinadores andarilhos', () => {
     }
   });
 });
+
+describe('raros', () => {
+  it('Umbrel aparece raramente nas Ruínas da Lua', () => {
+    expect(MAPS.ruinas.rare?.map((r) => r.species)).toContain('umbrel');
+  });
+});

@@ -251,6 +251,7 @@ const FLORESTA: MapDef = {
     { species: 'larvilo', min: 2, max: 4, weight: 55 },
     { species: 'brotinho', min: 2, max: 3, weight: 20 },
     { species: 'verdaki', min: 2, max: 4, weight: 25 },
+    { species: 'verdamantis', min: 9, max: 11, weight: 3 },
   ],
 };
 
@@ -464,6 +465,7 @@ const RUINAS: MapDef = {
     { species: 'sombrelo', min: 22, max: 26, weight: 50 },
     { species: 'corvanoite', min: 23, max: 27, weight: 50 },
   ],
+  rare: [{ species: 'umbrel', min: 22, max: 26 }],
 };
 
 export const MAPS: Record<string, MapDef> = { vila: VILA, floresta: FLORESTA, praia: PRAIA, planalto: PLANALTO, canion: CANION, picos: PICOS, ruinas: RUINAS };

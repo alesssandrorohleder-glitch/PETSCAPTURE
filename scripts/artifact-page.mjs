@@ -13,6 +13,8 @@ const html = readFileSync(join(out, 'index.html'), 'utf8')
   .replace(/<!doctype html>/i, '')
   .replace(/<\/?(html|head|body)[^>]*>/gi, '')
   .replace(/<meta name="viewport"[^>]*>/i, '')
-  .replace(/<meta charset[^>]*>/i, '');
+  .replace(/<meta charset[^>]*>/i, '')
+  // título curto para a galeria do claude.ai
+  .replace(/<title>[^<]*<\/title>/, '<title>Elementais: A Jornada dos Domadores</title>');
 writeFileSync(join(out, 'index.html'), html.trim() + '\n');
 console.log('ok');
