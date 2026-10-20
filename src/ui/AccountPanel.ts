@@ -56,10 +56,13 @@ function render(view: View, message = '', isError = false): void {
   const msg = message ? `<p class="acct__msg${isError ? ' acct__msg--err' : ''}" role="status">${esc(message)}</p>` : '';
   const close = `<button type="button" class="acct__close" data-act="close" aria-label="Fechar">✕</button>`;
   const google = ONLINE.googleLogin ? `<button type="button" class="acct__google" data-act="google">Entrar com Google</button><div class="acct__or">ou</div>` : '';
+  const local = CloudSave.localOnly
+    ? `<p class="acct__msg" role="note">⚠ Servidor online ainda não configurado: por enquanto a conta e o progresso ficam salvos só neste navegador.</p>`
+    : '';
   let body = '';
   switch (view) {
     case 'login':
-      body = `${close}<h2>Entrar</h2><p class="acct__lead">Entre para salvar seu progresso online e continuar em qualquer aparelho.</p>${google}
+      body = `${close}<h2>Entrar</h2><p class="acct__lead">Entre para salvar seu progresso online e continuar em qualquer aparelho.</p>${local}${google}
         <form data-form="login">
           <label for="acct-email">E-mail</label><input id="acct-email" name="email" type="email" autocomplete="email" required>
           <label for="acct-pass">Senha</label><input id="acct-pass" name="password" type="password" autocomplete="current-password" required minlength="6">
@@ -68,7 +71,7 @@ function render(view: View, message = '', isError = false): void {
         <p class="acct__links"><button type="button" class="link" data-act="forgot">Esqueci minha senha</button> · <button type="button" class="link" data-act="signup">Criar conta</button></p>`;
       break;
     case 'signup':
-      body = `${close}<h2>Criar conta</h2><p class="acct__lead">É grátis. Seu progresso fica salvo na nuvem.</p>${google}
+      body = `${close}<h2>Criar conta</h2><p class="acct__lead">É grátis. Seu progresso fica salvo na nuvem.</p>${local}${google}
         <form data-form="signup">
           <label for="acct-name">Nome de jogador</label><input id="acct-name" name="name" type="text" autocomplete="nickname" required maxlength="16" placeholder="Ex.: Domador123">
           <label for="acct-email">E-mail</label><input id="acct-email" name="email" type="email" autocomplete="email" required>
@@ -99,7 +102,7 @@ function render(view: View, message = '', isError = false): void {
       const state = CloudSave.status === 'error' ? 'Não foi possível enviar (sem conexão?). Tentaremos de novo.' : CloudSave.status === 'saving' ? 'Enviando…' : `Último envio: ${last}`;
       body = `${close}<h2>Sua conta</h2>
         <p class="acct__user"><strong>${esc(u.name)}</strong><br><small>${esc(u.email)}</small></p>
-        <p class="acct__lead">☁ Seu progresso é salvo online automaticamente. ${esc(state)}</p>
+        <p class="acct__lead">☁ Seu progresso é salvo online automaticamente. ${esc(state)}</p>${local}
         ${msg}
         <div class="acct__col">
           <button type="button" class="primary" data-act="upload">Salvar na nuvem agora</button>

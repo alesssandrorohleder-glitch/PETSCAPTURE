@@ -200,8 +200,8 @@ automaticamente junto com os anúncios).
 ## Login e salvamento online (opcional)
 
 Cada jogador pode criar uma conta (e-mail e senha, ou Google) e o progresso fica salvo na nuvem — dá para
-continuar em outro celular/computador. Sem configurar nada, o jogo funciona só com o save local, e a opção
-de conta não aparece no menu. O serviço usado é o [Supabase](https://supabase.com) (plano grátis).
+continuar em outro celular/computador. A opção **Entrar / Criar conta** aparece sempre no menu; enquanto o
+Supabase não estiver configurado, as contas ficam guardadas só no navegador do jogador (a janela de login avisa isso). O serviço usado é o [Supabase](https://supabase.com) (plano grátis).
 
 1. Crie uma conta no Supabase e um **New project** (anote a senha do banco; região: São Paulo).
 2. Abra **SQL Editor → New query**, cole todo o conteúdo de `supabase/schema.sql` e clique **Run**.

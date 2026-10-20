@@ -55,7 +55,13 @@ class CloudSaveImpl {
   private listeners = new Set<Listener>();
   private recoveryHandler: (() => void) | null = null;
 
-  /** Online disponível? (Supabase configurado ou modo de teste ?cloud=mock) */
+  /**
+   * true enquanto o Supabase não estiver configurado: o login continua aparecendo,
+   * mas as contas ficam guardadas só neste navegador (MockBackend).
+   */
+  localOnly = false;
+
+  /** Login disponível? (sempre, depois do init) */
   get enabled(): boolean {
     return this.backend !== null;
   }
@@ -68,16 +74,19 @@ class CloudSaveImpl {
     this.listeners.forEach((l) => l());
   }
 
-  /** Escolhe o servidor e restaura a sessão. Sem configuração, fica desligado. */
+  /** Escolhe o servidor e restaura a sessão. Sem Supabase configurado, usa contas locais. */
   async init(backend?: CloudBackend): Promise<void> {
+    this.localOnly = false;
     if (backend) this.backend = backend;
     else if (urlParam('cloud') === 'mock') this.backend = new MockBackend();
     else if (ONLINE.supabaseUrl && ONLINE.supabaseAnonKey) {
       // carregado só quando configurado, para não pesar o jogo de quem não usa
       const { SupabaseBackend } = await import('./cloud/SupabaseBackend');
       this.backend = new SupabaseBackend(ONLINE.supabaseUrl, ONLINE.supabaseAnonKey);
+    } else {
+      this.backend = new MockBackend();
+      this.localOnly = true;
     }
-    if (!this.backend) return;
     this.backend.onAuthChange((user, event) => {
       this.user = user;
       if (event === 'recovery') this.recoveryHandler?.();

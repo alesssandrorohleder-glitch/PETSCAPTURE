@@ -26,7 +26,10 @@ export default async function ({ page, press, wait, shot, expectScene, mobile, p
   await expectScene('Menu');
   await shot('01-menu');
   // Opções -> alterna som -> volta
-  await press('ArrowDown'); await press('Enter'); // 'Continuar' desabilitado é pulado
+  const labels = await page.evaluate(() => window.__game.scene.getScene('Menu').menu.items.map((i) => i.label));
+  assert(labels.some((t) => t.includes('Entrar / Criar conta')), 'login aparece no menu mesmo sem servidor configurado');
+  // 'Continuar' desabilitado é pulado: Novo Jogo -> Entrar / Criar conta -> Opções
+  await press('ArrowDown'); await press('ArrowDown'); await press('Enter');
   await expectScene('Options');
   await press('Enter'); await shot('02-options');
   await press('Escape');
