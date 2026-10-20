@@ -151,7 +151,12 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   guard = 0;
   while (guard++ < 200) {
     if (await active('Evolution')) { sawEvo = true; break; }
-    if (!(await active('Battle'))) break;
+    if (!(await active('Battle'))) {
+      // pode estar no meio da troca de cena
+      await page.waitForFunction(() => window.__game.scene.isActive('Evolution') || window.__game.scene.isActive('World'), null, { timeout: 4000 }).catch(() => {});
+      sawEvo = await active('Evolution');
+      break;
+    }
     const overlay = await page.evaluate(() => !!window.__game.scene.getScene('Battle').overlay);
     if (overlay && !sawLearn) { sawLearn = true; await shot('13-learn-move'); }
     await press('Enter', 250);
@@ -178,6 +183,79 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await walk('ArrowDown', 3);
   await wait(500);
   assert((await st()).map === 'picos', 'Ruínas ligam aos Picos');
+
+  // ---------------- Etapa 6: loja, captura, Caixa, equipe e mochila
+  // Loja: porta em (23,5); fica em (23,6) e sobe
+  await page.evaluate(() => { window.__state.healParty(); Object.assign(window.__state.get(), { mapId: 'vila', x: 23, y: 6, facing: 'up', money: 1000 }); window.__game.scene.getScene('World').scene.restart(); });
+  await expectScene('World');
+  await walk('ArrowUp', 1);
+  await expectScene('Shop');
+  await shot('30-shop');
+  const caps0 = await page.evaluate(() => window.__state.get().inventory.capsula);
+  await press('Enter', 500); // Cápsula
+  await shot('31-shop-qty');
+  await press('ArrowDown', 200); // 5x
+  await press('Enter', 500);
+  await press('Enter', 500); // OK
+  const inv = await page.evaluate(() => ({ caps: window.__state.get().inventory.capsula, money: window.__state.get().money }));
+  assert(inv.caps === caps0 + 5 && inv.money === 0, `comprou 5 cápsulas (${JSON.stringify(inv)})`);
+  await press('Escape');
+  await expectScene('World');
+
+  // Captura: Larvilo com 1 de vida; joga cápsulas até pegar (chance ~78% por tentativa)
+  const capture = async () => {
+    await page.evaluate(() => { window.__battleLog = []; const m = window.__create('larvilo', 2); m.hp = 1; window.__game.scene.getScene('World').scene.start('Battle', { kind: 'wild', enemies: [m] }); });
+    await expectScene('Battle');
+    let g = 0, shotTaken = false;
+    while ((await active('Battle')) && g++ < 120) {
+      const atMenu = await page.evaluate(() => { const b = window.__game.scene.getScene('Battle'); return !!b.menu && !b.overlay && !b.advance && b.msg.text.startsWith('O que'); });
+      if (atMenu) {
+        await press('ArrowDown', 300); // Item
+        await press('Enter', 500);
+        if (!shotTaken) { await shot('32-bag-in-battle'); shotTaken = true; }
+        await press('Enter', 300); // Cápsula
+      } else await wait(300); // mensagens avançam sozinhas
+    }
+    if (!(await active('World')) && !(await page.waitForFunction(() => window.__game.scene.isActive('World'), null, { timeout: 4000 }).catch(() => false))) {
+      console.log('    log da batalha:', await page.evaluate(() => window.__battleLog.join(' | ')));
+    }
+    await expectScene('World');
+  };
+  const n0 = await page.evaluate(() => window.__state.get().party.length);
+  await capture();
+  const n1 = await page.evaluate(() => window.__state.get().party.length);
+  assert(n1 === n0 + 1, `capturou e entrou na equipe (${n0} -> ${n1})`);
+  // equipe cheia -> Caixa
+  await page.evaluate(() => { const p = window.__state.get().party; while (p.length < 6) p.push(window.__create('brotinho', 4)); });
+  await capture();
+  const box = await page.evaluate(() => window.__state.get().box.length);
+  const dbg = await page.evaluate(() => ({ box: window.__state.get().box.length, party: window.__state.get().party.length, scene: window.__game.scene.getScenes(true).map(s => s.scene.key) }));
+  assert(box === 1, `com equipe cheia foi para a Caixa (${JSON.stringify(dbg)})`);
+
+  // Equipe pelo menu de pausa
+  await press('Escape', 500);
+  await press('Enter');
+  await expectScene('Party');
+  await press('ArrowRight', 300);
+  await shot('33-party');
+  await press('Enter', 300); // foco nas ações
+  await press('Enter', 600); // "Ser o primeiro"
+  const first = await page.evaluate(() => window.__state.get().party[0].species);
+  assert(first !== 'aquaris_evo', `mudou o primeiro da equipe (${first})`);
+  // Caixa
+  await page.evaluate(() => window.__game.scene.getScene('Party').switchMode('box'));
+  await wait(400);
+  await shot('34-box');
+  await press('Escape');
+  await expectScene('World');
+  // Mochila
+  await press('Escape', 500);
+  await press('ArrowDown', 150);
+  await press('Enter');
+  await expectScene('Inventory');
+  await shot('35-inventory');
+  await press('Escape');
+  await expectScene('World');
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

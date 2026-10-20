@@ -335,6 +335,25 @@ export function signTexture(scene: Phaser.Scene): string {
   });
 }
 
+/**
+ * Cápsula de captura (public/assets/objects/capsule.png): frasco em forma de pílula,
+ * metade turquesa e metade dourada, com uma runa de cristal no centro.
+ */
+export function capsuleTexture(scene: Phaser.Scene): string {
+  return ensure(scene, 'objects/capsule', 28, 20, (g) => {
+    g.fillStyle(0x000000, 0.25).fillEllipse(14, 18, 22, 4);
+    g.fillStyle(0x1f8a80).fillRoundedRect(1, 2, 26, 14, 7);
+    g.fillStyle(0x2ec4b6).fillRoundedRect(1, 2, 14, 14, { tl: 7, bl: 7, tr: 0, br: 0 });
+    g.fillStyle(0xffd166).fillRoundedRect(13, 2, 14, 14, { tl: 0, bl: 0, tr: 7, br: 7 });
+    g.fillStyle(0xd4a017).fillRect(13, 2, 2, 14);
+    g.lineStyle(1.2, 0x14112b).strokeRoundedRect(1, 2, 26, 14, 7);
+    // runa de cristal
+    g.fillStyle(0xe0fbfc).fillPoints([new Phaser.Math.Vector2(14, 4.5), new Phaser.Math.Vector2(18, 9), new Phaser.Math.Vector2(14, 13.5), new Phaser.Math.Vector2(10, 9)], true);
+    g.fillStyle(0x7fdbff).fillPoints([new Phaser.Math.Vector2(14, 6.5), new Phaser.Math.Vector2(16, 9), new Phaser.Math.Vector2(14, 11.5), new Phaser.Math.Vector2(12, 9)], true);
+    g.fillStyle(0xffffff, 0.55).fillRoundedRect(4, 4, 8, 3, 1.5);
+  });
+}
+
 // ---------------------------------------------------------------- monstros
 function shapePath(g: Phaser.GameObjects.Graphics, shape: PlaceholderShape, cx: number, cy: number, r: number): void {
   const poly = (n: number, rot: number, inner?: number) => {

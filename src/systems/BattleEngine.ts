@@ -29,6 +29,7 @@ export type BattleEvent =
   | { t: 'xp'; uid: string; amount: number }
   | { t: 'level'; uid: string; level: number }
   | { t: 'learnChoice'; uid: string; move: string }
+  | { t: 'capture'; shakes: number; success: boolean }
   | { t: 'needSwitch' }
   | { t: 'end'; outcome: Outcome };
 
@@ -55,12 +56,30 @@ export interface Battler {
   freezeTurns: number;
 }
 
+/** Para onde foi o monstro capturado. */
+export type CaptureDest = 'party' | 'box';
+
 export interface BattleOptions {
   party: MonsterInstance[];
   enemies: MonsterInstance[];
   kind: BattleKind;
   enemyName?: string;
   rng?: () => number;
+  /** monstros guardados fora da equipe (recebe capturas com a equipe cheia) */
+  box?: MonsterInstance[];
+}
+
+export const PARTY_MAX = 6;
+
+/**
+ * Chance de captura (0–1): maior com menos vida, taxa de captura da espécie e status.
+ * Vida cheia ≈ catchRate/765; vida mínima ≈ catchRate/255 (antes do bônus de status).
+ */
+export function captureChance(mon: MonsterInstance, bonus = 1): number {
+  const max = maxHp(mon);
+  const statusBonus = mon.status === 'adormecido' || mon.status === 'congelado' ? 2 : mon.status ? 1.5 : 1;
+  const a = (((3 * max - 2 * mon.hp) * getSpecies(mon.species).catchRate * bonus) / (3 * max)) * statusBonus;
+  return Math.min(1, a / 255);
 }
 
 const opp = (s: Side): Side => (s === 'player' ? 'enemy' : 'player');
@@ -134,6 +153,9 @@ export class BattleEngine {
   readonly party: MonsterInstance[];
   readonly enemies: MonsterInstance[];
   readonly enemyName?: string;
+  readonly box: MonsterInstance[];
+  /** onde o monstro capturado foi parar */
+  captured?: { mon: MonsterInstance; dest: CaptureDest };
   private rng: () => number;
   private battlers: Record<Side, Battler>;
   private runAttempts = 0;
@@ -151,6 +173,7 @@ export class BattleEngine {
     this.party = o.party;
     this.enemies = o.enemies;
     this.enemyName = o.enemyName;
+    this.box = o.box ?? [];
     this.rng = o.rng ?? Math.random;
     this.pIndex = Math.max(0, this.party.findIndex((m) => m.hp > 0));
     this.battlers = { player: newBattler(this.party[this.pIndex]), enemy: newBattler(this.enemies[0]) };
@@ -271,8 +294,46 @@ export class BattleEngine {
     ev.push({ t: 'msg', text: `Vai, ${displayName(this.party[index])}!` });
   }
 
+  /** Pode usar a cápsula agora? (só contra selvagens) */
+  canCapture(): boolean {
+    return this.kind === 'wild' && !this.over;
+  }
+
+  /** Retorna true se a batalha acabou com a captura. */
+  private throwCapsule(itemId: string, ev: BattleEvent[]): boolean {
+    const wild = this.battlers.enemy.mon;
+    if (this.kind !== 'wild') {
+      ev.push({ t: 'msg', text: 'Não dá para capturar o monstro de outro treinador!' });
+      return false;
+    }
+    ev.push({ t: 'msg', text: `Você lançou uma ${getItem(itemId).name}!` });
+    const chance = captureChance(wild, getItem(itemId).catchBonus ?? 1);
+    // 3 balançadas; cada uma passa com chance^(1/3), então o total é `chance`
+    const perShake = Math.cbrt(chance);
+    let shakes = 0;
+    while (shakes < 3 && this.rng() < perShake) shakes++;
+    const success = shakes === 3;
+    ev.push({ t: 'capture', shakes, success });
+    if (!success) {
+      ev.push({ t: 'msg', text: ['Ah, não! Ele escapou!', 'Quase! Foi por pouco!', 'Droga! Estava quase!'][Math.min(2, shakes)] });
+      return false;
+    }
+    const dest: CaptureDest = this.party.length < PARTY_MAX ? 'party' : 'box';
+    if (wild.status === 'adormecido' || wild.status === 'congelado' || wild.status === 'paralisado') wild.status = null;
+    (dest === 'party' ? this.party : this.box).push(wild);
+    this.captured = { mon: wild, dest };
+    ev.push({ t: 'msg', text: `Peguei! ${displayName(wild)} foi capturado!` });
+    if (dest === 'box') ev.push({ t: 'msg', text: `Sua equipe está cheia. ${displayName(wild)} foi enviado para a Caixa.` });
+    this.finish('capture', ev);
+    return true;
+  }
+
   private useItem(itemId: string, target: number, ev: BattleEvent[]): void {
     const item = getItem(itemId);
+    if (item.kind === 'capture') {
+      this.throwCapsule(itemId, ev);
+      return;
+    }
     const mon = this.party[target];
     ev.push({ t: 'msg', text: `Você usou ${item.name} em ${displayName(mon)}.` });
     if (item.kind === 'heal') {

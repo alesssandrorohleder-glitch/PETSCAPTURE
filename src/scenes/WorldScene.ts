@@ -274,7 +274,7 @@ export class WorldScene extends BaseScene {
         await this.dialog.show(['Pronto! Seus pets estão totalmente recuperados.', 'Volte sempre!'], 'Enfermeira Clara');
       }
     } else if (b.kind === 'shop') {
-      await this.dialog.show(['Olá! A loja abre na etapa 6.'], 'Vendedor Teo');
+      this.goTo(SCENES.Shop);
     } else {
       await this.dialog.show(['A porta está trancada.']);
     }
@@ -294,7 +294,8 @@ export class WorldScene extends BaseScene {
     const box = this.add.container(0, 0).setDepth(9500);
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.4).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.toggleMenu());
-    box.add([shade, makePanel(this, x - 20, 70, 260, 390)]);
+    box.add([shade, makePanel(this, x - 20, 70, 260, 430)]);
+    box.add(makeText(this, x + 110, 474, `Moedas: ${this.st.money}`, 18, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
     const list = new MenuList(
       this,
       [

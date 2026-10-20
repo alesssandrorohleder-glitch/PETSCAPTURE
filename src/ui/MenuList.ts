@@ -32,6 +32,8 @@ export class MenuList extends Phaser.GameObjects.Container {
   private labels: Phaser.GameObjects.Text[] = [];
   private index = 0;
   private enabled = true;
+  /** quando falso, ignora o teclado mas continua clicável */
+  keyboard = true;
   private readonly opts: Required<Omit<MenuListOptions, 'onCancel'>> & Pick<MenuListOptions, 'onCancel'>;
 
   constructor(scene: Phaser.Scene, items: MenuItem[], opts: MenuListOptions) {
@@ -86,6 +88,12 @@ export class MenuList extends Phaser.GameObjects.Container {
     return this.index;
   }
 
+  setHighlight(on: boolean): void {
+    this.boxes.forEach((b, i) => b.setStrokeStyle(on && i === this.index ? 3 : 2, on && i === this.index ? 0xffffff : UI.border, on && i === this.index ? 1 : 0.6));
+    if (on) this.refresh();
+    else this.boxes.forEach((b) => b.setFillStyle(UI.panelLight, 1));
+  }
+
   select(i: number): void {
     if (i < 0 || i >= this.items.length) return;
     this.index = i;
@@ -119,7 +127,7 @@ export class MenuList extends Phaser.GameObjects.Container {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (!this.enabled || !this.active || !this.visible) return;
+    if (!this.enabled || !this.keyboard || !this.active || !this.visible) return;
     switch (e.code) {
       case 'ArrowUp': case 'KeyW': this.move(0, -1); break;
       case 'ArrowDown': case 'KeyS': this.move(0, 1); break;

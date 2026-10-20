@@ -24,7 +24,7 @@ const page = await browser.newPage(
   mobile ? { viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 720 } },
 );
 const errors = [];
-page.on('pageerror', (e) => errors.push(String(e)));
+page.on('pageerror', (e) => errors.push(String(e.stack ?? e)));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 
 const scene = () => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key).join(','));

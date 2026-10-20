@@ -51,6 +51,7 @@ Basta colocar o arquivo com o **nome exato** na pasta indicada e recarregar
 | Árvore/obstáculo alto do bioma | `public/assets/objects/tree_<bioma>.png` | 88×120, base no rodapé da imagem |
 | Prédios | `public/assets/buildings/<tipo>.png` | heal/shop 320×256, house 256×192 |
 | Placa | `public/assets/objects/sign.png` | 64×64 |
+| Cápsula de captura | `public/assets/objects/capsule.png` | 56×40 |
 
 O jogo roda em **Full HD (1920×1080)**. O layout interno usa 960×540 com zoom 2, por isso os
 tamanhos acima são o dobro das medidas "de layout" — use imagens nesse tamanho (ou maiores) para ficarem nítidas.

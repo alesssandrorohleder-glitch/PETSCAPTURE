@@ -10,11 +10,11 @@ import { BattleEngine, STATUS_INFO, type BattleEvent, type BattleKind, type Play
 import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
 import { displayName, evolutionTarget, maxHp, MAX_MOVES, xpProgress, type MonsterInstance } from '../systems/Monster';
-import { fitInto, monsterSprite } from '../systems/Placeholders';
+import { capsuleTexture, fitInto, monsterSprite } from '../systems/Placeholders';
 import { HealthBar } from '../ui/HealthBar';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { makePanel, makeText } from '../ui/text';
-import { BaseScene, tweenP } from './BaseScene';
+import { BaseScene, tweenP, wait } from './BaseScene';
 
 export interface BattleData {
   kind: BattleKind;
@@ -63,7 +63,7 @@ export class BattleScene extends BaseScene {
     this.menu = undefined;
     this.overlay = undefined;
     const st = GameState.get();
-    this.engine = new BattleEngine({ party: st.party, enemies: data.enemies, kind: data.kind, enemyName: data.enemyName });
+    this.engine = new BattleEngine({ party: st.party, enemies: data.enemies, kind: data.kind, enemyName: data.enemyName, box: st.box });
 
     this.drawBackground(st.mapId);
     this.views = {
@@ -151,6 +151,7 @@ export class BattleScene extends BaseScene {
   /** Mostra uma mensagem; avança com Enter/A/toque ou sozinha após um tempo. */
   private say(text: string, auto = 1400): Promise<void> {
     this.msg.setText(text);
+    (window as unknown as { __battleLog?: string[] }).__battleLog?.push(text); // usado pelos testes
     return new Promise((resolve) => {
       let done = false;
       const finish = () => {
@@ -266,9 +267,13 @@ export class BattleScene extends BaseScene {
       .filter((it) => (inv[it.id] ?? 0) > 0)
       .map((it) => ({
         label: `${it.name}  x${inv[it.id]}`,
-        disabled: it.kind === 'capture',
-        hint: it.kind === 'capture' ? 'captura chega na etapa 6' : it.description,
-        onSelect: () => this.pickItemTarget(it.id),
+        disabled: it.kind === 'capture' && !this.engine.canCapture(),
+        hint: it.kind === 'capture' && !this.engine.canCapture() ? 'não dá para capturar monstro de treinador' : it.description,
+        onSelect: () => {
+          if (it.kind !== 'capture') return this.pickItemTarget(it.id);
+          GameState.get().inventory[it.id]--;
+          void this.act({ kind: 'item', item: it.id, target: 0 });
+        },
       }));
     if (!items.length) items.push({ label: 'Mochila vazia', disabled: true, onSelect: () => {} });
     items.push({ label: 'Voltar', onSelect: () => this.showMainMenu() });
@@ -333,6 +338,9 @@ export class BattleScene extends BaseScene {
             this.refresh('player');
             this.burst(this.views.player.sprite.x, this.views.player.sprite.y, 0xffd166, 16);
           }
+          break;
+        case 'capture':
+          await this.animateCapture(e.shakes, e.success);
           break;
         case 'learnChoice':
           await this.askForget(e.uid, e.move);
@@ -409,6 +417,50 @@ export class BattleScene extends BaseScene {
     });
   }
 
+  /** Cápsula voa até o monstro, ele entra, a cápsula balança e prende (ou ele escapa). */
+  private async animateCapture(shakes: number, success: boolean): Promise<void> {
+    const target = this.views.enemy.sprite;
+    const groundY = target.y + 52;
+    const cap = this.add.image(this.views.player.sprite.x, this.views.player.sprite.y - 40, capsuleTexture(this)).setDisplaySize(34, 24).setDepth(60);
+    const sx = cap.x;
+    const sy = cap.y;
+    AudioManager.sfx(this, 'sfx/capsula');
+    await new Promise<void>((resolve) =>
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: 600,
+        onUpdate: (tw) => {
+          const t = tw.getValue() ?? 1;
+          cap.setPosition(sx + (target.x - sx) * t, sy + (target.y - 30 - sy) * t - Math.sin(t * Math.PI) * 140);
+          cap.setAngle(t * 720);
+        },
+        onComplete: () => resolve(),
+      }),
+    );
+    cap.setAngle(0);
+    // o monstro vira luz e entra na cápsula
+    target.setTintFill(0xffffff);
+    const full = target.scale;
+    await tweenP(this, { targets: target, scale: 0.05, alpha: 0.2, duration: 300 });
+    await tweenP(this, { targets: cap, y: groundY, duration: 300, ease: 'Bounce.out' });
+    for (let i = 0; i < shakes; i++) {
+      await wait(this, 250);
+      await tweenP(this, { targets: cap, angle: { from: 0, to: i % 2 ? 25 : -25 }, duration: 140, yoyo: true });
+    }
+    await wait(this, 300);
+    if (success) {
+      this.burst(cap.x, cap.y, 0xffd166, 14);
+      cap.setTint(0x9a9a9a);
+      await wait(this, 500);
+    } else {
+      this.burst(cap.x, cap.y, 0xffffff, 16);
+      cap.destroy();
+      target.clearTint();
+      await tweenP(this, { targets: target, scale: full, alpha: 1, duration: 260, ease: 'Back.out' });
+    }
+  }
+
   private async animateHp(side: Side, hp: number, max: number, strong?: boolean): Promise<void> {
     const v = this.views[side];
     if (strong) this.cameras.main.shake(200, 0.008);
@@ -442,6 +494,11 @@ export class BattleScene extends BaseScene {
       if (this.data_.kind === 'trainer' && !this.data_.next) {
         next = { scene: SCENES.GameOver, data: { victory: true, message: `Você venceu ${this.data_.enemyName}! +${prize} moedas` } };
       }
+      const evolving = st.party.filter((m) => m.hp > 0 && evolutionTarget(m)).map((m) => m.uid);
+      if (evolving.length) this.goTo(SCENES.Evolution, { uids: evolving, next });
+      else this.goTo(next.scene, next.data);
+    } else if (outcome === 'capture') {
+      const next = this.data_.next ?? { scene: SCENES.World };
       const evolving = st.party.filter((m) => m.hp > 0 && evolutionTarget(m)).map((m) => m.uid);
       if (evolving.length) this.goTo(SCENES.Evolution, { uids: evolving, next });
       else this.goTo(next.scene, next.data);
