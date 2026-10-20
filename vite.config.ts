@@ -40,9 +40,33 @@ function assetManifest(): Plugin {
   };
 }
 
+/**
+ * Endereço público do site, usado nas meta tags de compartilhamento (og:image precisa de URL completa).
+ * Defina SITE_URL no painel da Vercel/Netlify, ou deixe que seja detectado automaticamente.
+ */
+function siteUrl(): string {
+  const raw =
+    process.env.SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    process.env.URL || // Netlify
+    '';
+  return raw.replace(/\/$/, '');
+}
+
+function siteMeta(): Plugin {
+  return {
+    name: 'site-meta',
+    transformIndexHtml(html) {
+      const url = siteUrl();
+      // sem URL conhecida, usa caminhos relativos (funciona, mas alguns apps não mostram a imagem)
+      return html.replace(/%SITE_URL%\//g, url ? `${url}/` : './').replace(/%SITE_URL%/g, url || '.');
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
-  plugins: [assetManifest()],
+  plugins: [assetManifest(), siteMeta()],
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1600,

@@ -12,12 +12,16 @@ import { InventoryScene } from './scenes/InventoryScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { EvolutionScene } from './scenes/EvolutionScene';
+import { CoverScene } from './scenes/CoverScene';
 import { GameState } from './systems/GameState';
 import { createMonster } from './systems/Monster';
 import { SaveManager } from './systems/SaveManager';
 import { AdManager } from './systems/AdManager';
 import { Settings } from './systems/Settings';
 import { showConsentBanner } from './ui/ConsentBanner';
+
+// ?cover=1 abre só a arte de capa (usada por scripts/cover.mjs)
+const coverMode = new URLSearchParams(window.location.search).get('cover') === '1';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -28,20 +32,22 @@ const game = new Phaser.Game({
   pixelArt: false,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 3 },
-  scene: [
-    BootScene,
-    PreloadScene,
-    MenuScene,
-    OptionsScene,
-    TrainerSelectScene,
-    WorldScene,
-    BattleScene,
-    PartyScene,
-    InventoryScene,
-    ShopScene,
-    GameOverScene,
-    EvolutionScene,
-  ],
+  scene: coverMode
+    ? [CoverScene]
+    : [
+        BootScene,
+        PreloadScene,
+        MenuScene,
+        OptionsScene,
+        TrainerSelectScene,
+        WorldScene,
+        BattleScene,
+        PartyScene,
+        InventoryScene,
+        ShopScene,
+        GameOverScene,
+        EvolutionScene,
+      ],
 });
 
 // Exposto para testes automatizados (scripts/smoke.mjs).
@@ -63,4 +69,4 @@ AdManager.init((paused) => {
   game.input.enabled = !paused;
   if (game.input.keyboard) game.input.keyboard.enabled = !paused;
 });
-showConsentBanner();
+if (!coverMode) showConsentBanner();

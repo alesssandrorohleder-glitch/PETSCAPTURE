@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Settings } from './Settings';
+import { playSynth } from './Synth';
 
 /**
  * Ponto único para música e efeitos. Toca apenas sons que foram carregados
@@ -34,7 +35,9 @@ export class AudioManager {
     this.musicKey = undefined;
   }
 
+  /** Toca o arquivo de som se existir; senão, um som sintetizado simples. */
   static sfx(scene: Phaser.Scene, key: string, volume = 0.7): void {
     if (scene.cache.audio.exists(key)) scene.sound.play(key, { volume });
+    else playSynth(scene.game, key);
   }
 }

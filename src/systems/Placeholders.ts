@@ -354,6 +354,51 @@ export function capsuleTexture(scene: Phaser.Scene): string {
   });
 }
 
+// ---------------------------------------------------------------- partículas de efeito
+export type FxShape = 'flame' | 'drop' | 'spark' | 'rock' | 'snow' | 'smoke' | 'leaf' | 'orb';
+
+/** Texturas brancas das partículas (a cor vem do tint). Arquivos opcionais: public/assets/fx/<nome>.png */
+export function fxTexture(scene: Phaser.Scene, shape: FxShape): string {
+  return ensure(scene, `fx/${shape}`, 16, 16, (g) => {
+    g.fillStyle(0xffffff);
+    switch (shape) {
+      case 'flame':
+        g.fillCircle(8, 10, 5).fillTriangle(3, 10, 8, 0, 13, 10);
+        break;
+      case 'drop':
+        g.fillCircle(8, 10, 4.5).fillTriangle(3.8, 9, 8, 1, 12.2, 9);
+        break;
+      case 'spark':
+        g.fillPoints([new Phaser.Math.Vector2(8, 0), new Phaser.Math.Vector2(10, 6), new Phaser.Math.Vector2(16, 8), new Phaser.Math.Vector2(10, 10), new Phaser.Math.Vector2(8, 16), new Phaser.Math.Vector2(6, 10), new Phaser.Math.Vector2(0, 8), new Phaser.Math.Vector2(6, 6)], true);
+        break;
+      case 'rock':
+        g.fillPoints([new Phaser.Math.Vector2(3, 4), new Phaser.Math.Vector2(10, 1), new Phaser.Math.Vector2(15, 7), new Phaser.Math.Vector2(12, 14), new Phaser.Math.Vector2(4, 14), new Phaser.Math.Vector2(1, 9)], true);
+        break;
+      case 'snow':
+        g.lineStyle(2, 0xffffff);
+        for (let i = 0; i < 3; i++) {
+          const a = (i * Math.PI) / 3;
+          g.lineBetween(8 - Math.cos(a) * 7, 8 - Math.sin(a) * 7, 8 + Math.cos(a) * 7, 8 + Math.sin(a) * 7);
+        }
+        g.fillCircle(8, 8, 2);
+        break;
+      case 'smoke':
+        g.fillStyle(0xffffff, 0.35).fillCircle(8, 8, 8);
+        g.fillStyle(0xffffff, 0.5).fillCircle(8, 8, 5);
+        break;
+      case 'leaf':
+        g.fillEllipse(8, 8, 14, 7);
+        g.lineStyle(1, 0xcccccc).lineBetween(2, 8, 14, 8);
+        break;
+      case 'orb':
+        g.fillStyle(0xffffff, 0.3).fillCircle(8, 8, 8);
+        g.fillStyle(0xffffff, 0.7).fillCircle(8, 8, 5);
+        g.fillStyle(0xffffff, 1).fillCircle(8, 8, 3);
+        break;
+    }
+  });
+}
+
 // ---------------------------------------------------------------- monstros
 function shapePath(g: Phaser.GameObjects.Graphics, shape: PlaceholderShape, cx: number, cy: number, r: number): void {
   const poly = (n: number, rot: number, inner?: number) => {

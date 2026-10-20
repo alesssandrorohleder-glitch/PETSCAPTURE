@@ -35,7 +35,8 @@ export class PreloadScene extends BaseScene {
     for (const file of manifest) {
       const key = assetKey(file);
       if (IMAGE_EXT.test(file)) this.load.image(key, `assets/${file}`);
-      else if (AUDIO_EXT.test(file)) this.load.audio(key, `assets/${file}`);
+      // áudio: "audio/music/vila.mp3" vira a chave "music/vila"
+      else if (AUDIO_EXT.test(file)) this.load.audio(key.replace(/^audio\//, ''), `assets/${file}`);
     }
   }
 

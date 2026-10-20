@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { UI } from '../config';
 import { makeText } from './text';
+import { AudioManager } from '../systems/AudioManager';
 
 export interface MenuItem {
   label: string;
@@ -96,6 +97,7 @@ export class MenuList extends Phaser.GameObjects.Container {
 
   select(i: number): void {
     if (i < 0 || i >= this.items.length) return;
+    if (i !== this.index && this.boxes.length) AudioManager.sfx(this.scene, 'sfx/select', 0.4);
     this.index = i;
     this.refresh();
   }
@@ -123,6 +125,7 @@ export class MenuList extends Phaser.GameObjects.Container {
   private activate(): void {
     const item = this.items[this.index];
     if (!item || item.disabled) return;
+    AudioManager.sfx(this.scene, 'sfx/confirm', 0.5);
     item.onSelect();
   }
 

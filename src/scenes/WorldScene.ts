@@ -526,6 +526,7 @@ export class WorldScene extends BaseScene {
         GameState.healParty();
         this.st.respawn = { mapId: this.map.id, x: this.st.x, y: this.st.y };
         this.cameras.main.flash(400, 255, 255, 255);
+        AudioManager.sfx(this, 'sfx/heal');
         await this.dialog.show(['Pronto! Seus pets estão totalmente recuperados.', 'Volte sempre!'], 'Enfermeira Clara');
       }
     } else if (b.kind === 'shop') {

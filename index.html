@@ -5,13 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#14112b" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>Elementais: A Jornada dos Domadores</title>
-    <meta name="description" content="RPG de navegador: escolha seu domador, capture monstrinhos elementais e enfrente o rival Noctis nas Ruínas da Lua." />
+    <link rel="apple-touch-icon" href="./og-cover.png" />
+    <title>Elementais: A Jornada dos Domadores — RPG de monstrinhos grátis no navegador</title>
+    <meta name="description" content="Jogo de RPG grátis no navegador: escolha seu domador, capture e evolua monstrinhos elementais, batalhe em turnos e enfrente o rival Noctis nas Ruínas da Lua. Funciona no celular e no PC." />
+    <meta name="keywords" content="jogo de monstrinhos, rpg de navegador, jogo grátis, capturar monstros, batalha por turnos, elementais" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="%SITE_URL%/" />
+    <!-- Compartilhamento (WhatsApp, Facebook, X/Twitter, Discord...) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Elementais" />
+    <meta property="og:title" content="Elementais: A Jornada dos Domadores" />
+    <meta property="og:description" content="Capture, evolua e batalhe com monstrinhos elementais. Grátis, direto no navegador!" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:image" content="%SITE_URL%/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Elementais: A Jornada dos Domadores — seis monstrinhos elementais" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Elementais: A Jornada dos Domadores" />
+    <meta name="twitter:description" content="Capture, evolua e batalhe com monstrinhos elementais. Grátis, direto no navegador!" />
+    <meta name="twitter:image" content="%SITE_URL%/og-cover.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Elementais: A Jornada dos Domadores",
+        "url": "%SITE_URL%/",
+        "image": "%SITE_URL%/og-cover.png",
+        "description": "RPG de captura de monstrinhos elementais com batalhas por turnos, grátis no navegador.",
+        "genre": ["RPG", "Aventura"],
+        "inLanguage": "pt-BR",
+        "gamePlatform": ["Web browser", "Mobile web"],
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" }
+      }
+    </script>
     <style>
       :root { color-scheme: dark; }
       html, body { margin: 0; height: 100%; background: #14112b; overflow: hidden; touch-action: none; }
       #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
       canvas { display: block; }
+      /* sugestão de girar o celular (o jogo é horizontal) */
+      .rotate { display: none; }
+      @media (orientation: portrait) and (max-width: 820px) {
+        .rotate { display: flex; position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 15; align-items: center; gap: 10px;
+          background: #231d45ee; color: #f4f1ff; border: 2px solid #8c7cf0; border-radius: 999px; padding: 8px 8px 8px 16px; font: 14px "Trebuchet MS", "Segoe UI", sans-serif; white-space: nowrap; }
+        .rotate button { font: inherit; border: 0; background: transparent; color: #ffd166; cursor: pointer; padding: 4px 8px; }
+      }
+      .rotate[hidden] { display: none !important; }
       /* aviso de cookies */
       .consent { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(720px, calc(100% - 24px)); box-sizing: border-box;
         background: #231d45; color: #f4f1ff; border: 2px solid #8c7cf0; border-radius: 12px; padding: 14px 16px; font: 14px/1.45 "Trebuchet MS", "Segoe UI", sans-serif; z-index: 20; box-shadow: 0 8px 30px #0008; }
@@ -33,6 +76,7 @@
   </head>
   <body>
     <div id="game"></div>
+    <div class="rotate" id="rotate">📱↻ Gire o celular para jogar melhor <button type="button" aria-label="Fechar aviso" onclick="this.parentElement.hidden = true">✕</button></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

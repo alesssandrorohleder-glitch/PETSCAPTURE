@@ -77,6 +77,7 @@ export class EvolutionScene extends BaseScene {
         delay = Math.max(70, delay * 0.8);
       }
       this.cameras.main.flash(600, 255, 255, 255);
+      AudioManager.sfx(this, 'sfx/levelup');
       evolve(mon);
       fitInto(sprite.setTexture(newKey).clearTint(), 220, 220);
       for (let i = 0; i < 30; i++) {

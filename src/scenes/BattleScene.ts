@@ -15,6 +15,7 @@ import type { TrainerData } from '../data/trainers';
 import { HealthBar } from '../ui/HealthBar';
 import { choose } from '../ui/Overlay';
 import { AdManager } from '../systems/AdManager';
+import { playMoveFx } from '../systems/BattleFx';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { makePanel, makeText } from '../ui/text';
 import { BaseScene, tweenP, wait } from './BaseScene';
@@ -353,6 +354,7 @@ export class BattleScene extends BaseScene {
           if (e.uid === this.engine.active('player').mon.uid) await this.views.player.xp?.animateTo(xpProgress(this.engine.active('player').mon), 1, 500);
           break;
         case 'level':
+          AudioManager.sfx(this, 'sfx/levelup');
           if (e.uid === this.engine.active('player').mon.uid) {
             this.refresh('player');
             this.burst(this.views.player.sprite.x, this.views.player.sprite.y, 0xffd166, 16);
@@ -378,17 +380,15 @@ export class BattleScene extends BaseScene {
   // ------------------------------------------------------------------ animações
   private async animateMove(side: Side, move: MoveData): Promise<void> {
     const att = this.views[side].sprite;
-    const target = this.views[side === 'player' ? 'enemy' : 'player'];
+    const target = this.views[side === 'player' ? 'enemy' : 'player'].sprite;
     const dir = side === 'player' ? 1 : -1;
     AudioManager.sfx(this, `sfx/${move.type}`);
     if (move.power > 0) {
       await tweenP(this, { targets: att, x: att.x + 40 * dir, y: att.y - 12 * dir, duration: 110, yoyo: true });
-      this.burst(target.sprite.x, target.sprite.y, ELEMENTS[move.type].color, move.supreme ? 26 : 12);
-      if (move.supreme || move.power >= 90) this.cameras.main.shake(320, move.supreme ? 0.02 : 0.01);
     } else {
-      this.burst(att.x, att.y, ELEMENTS[move.type].color, 10);
-      await tweenP(this, { targets: att, scale: att.scale * 1.08, duration: 160, yoyo: true });
+      void tweenP(this, { targets: att, scale: att.scale * 1.08, duration: 160, yoyo: true });
     }
+    await playMoveFx(this, move.type, { x: att.x, y: att.y }, { x: target.x, y: target.y }, { power: move.power, supreme: move.supreme });
   }
 
   /** Explosão simples de partículas coloridas (efeitos por elemento chegam na etapa 4). */
@@ -469,6 +469,7 @@ export class BattleScene extends BaseScene {
     }
     await wait(this, 300);
     if (success) {
+      AudioManager.sfx(this, 'sfx/captured');
       this.burst(cap.x, cap.y, 0xffd166, 14);
       cap.setTint(0x9a9a9a);
       await wait(this, 500);
@@ -483,12 +484,14 @@ export class BattleScene extends BaseScene {
   private async animateHp(side: Side, hp: number, max: number, strong?: boolean): Promise<void> {
     const v = this.views[side];
     if (strong) this.cameras.main.shake(200, 0.008);
+    AudioManager.sfx(this, 'sfx/hit');
     this.tweens.add({ targets: v.sprite, alpha: 0.2, duration: 70, yoyo: true, repeat: 2 });
     await v.hp.animateTo(hp, max, 500, (n) => v.hpText?.setText(`${n}/${max}`));
   }
 
   private async animateFaint(side: Side): Promise<void> {
     const s = this.views[side].sprite;
+    AudioManager.sfx(this, 'sfx/faint');
     await tweenP(this, { targets: s, y: s.y + 60, alpha: 0, duration: 450, ease: 'Quad.in' });
   }
 
