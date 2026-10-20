@@ -1,5 +1,5 @@
 import { RARE_STARTER_RATE, type MapDef } from '../data/maps';
-import { getSpecies } from '../data/monsters';
+import { getSpecies, rootSpecies } from '../data/monsters';
 
 export interface EncounterRoll {
   species: string;
@@ -7,9 +7,7 @@ export interface EncounterRoll {
   rare: boolean;
 }
 
-/** Espécie base de uma forma evoluída (ex.: ignis_evo -> ignis). */
-const baseOf = (species: string): string =>
-  species.endsWith('_evo') ? species.slice(0, -4) : getSpecies(species).id;
+const baseOf = (species: string): string => rootSpecies(getSpecies(species).id);
 
 /**
  * Sorteia o monstro de um encontro no mato alto.

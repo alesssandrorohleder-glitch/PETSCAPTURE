@@ -94,7 +94,7 @@ describe('mundo', () => {
     let rares = 0;
     const n = 20000;
     for (let i = 0; i < n; i++) {
-      const r = rollEncounter(MAPS.canion, 'ignis_evo')!; // jogador com Ignis evoluído: só Terragon pode ser raro
+      const r = rollEncounter(MAPS.canion, 'ignis_evo2')!; // jogador com Solaryx (forma final do Ignis): só Terragon pode ser raro
       if (r.rare) {
         rares++;
         expect(r.species).not.toBe('ignis');

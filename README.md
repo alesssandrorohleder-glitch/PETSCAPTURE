@@ -3,7 +3,7 @@
 RPG de navegador de captura de monstrinhos, feito com **Phaser 3 + TypeScript + Vite**.
 Funciona no computador (teclado/mouse) e no celular (toque, com direcional na tela), em até Full HD.
 
-**Conteúdo:** 5 domadores + o rival Noctis · 6 biomas e a vila · 27 espécies · batalhas por turnos com
+**Conteúdo:** 5 domadores + o rival Noctis · 6 biomas e a vila · 28 espécies · batalhas por turnos com
 tipos, status, golpes supremos, XP e evolução · captura, equipe de 6, Caixa, loja · história com 3
 encontros com o Noctis, desafios dos amigos e treinadores andarilhos · salvamento automático · anúncios.
 
@@ -99,7 +99,7 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
 `w_lucia`, `w_jorge`, `w_sofia`, `w_ravi` — retrato em `trainers/<id>.png` e sprites em `overworld/<id>_down.png` etc.
 
 **Ids das espécies:**
-- Pets: `ignis`, `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `ignis_evo`)
+- Pets: `ignis` → `ignis_evo` (Ignara, Nv 10) → `ignis_evo2` (Solaryx, Nv 24); `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `aquaris_evo`)
 - Floresta: `verdaki` → `verdamantis` (Nv 10) → `verdakor` (Nv 20), `larvilo`, `brotinho`
 - Praia: `conchilo`, `medulume`
 - Planalto: `zumbolt`, `voltabico`

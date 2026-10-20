@@ -43,15 +43,21 @@ const UMBREL_LS = ls(['garra_sombria', 'passo_fantasma', 'ilusao', 'drenar_energ
 export const SPECIES: Record<string, SpeciesData> = {
   ignis: s({
     id: 'ignis', name: 'Ignis', types: ['fogo'],
-    description: 'Híbrido de raposa e salamandra, escamas carmesim e cauda em chamas.',
+    description: 'Raposa-lagarto esguia, de orelhas de feneco e cauda que termina em chamas vivas.',
     base: { hp: 45, atk: 60, def: 45, spd: 62 }, learnset: IGNIS_LS, evolution: { level: 10, into: 'ignis_evo' },
     catchRate: 45, xpYield: 64, shape: 'triangle',
   }),
   ignis_evo: s({
-    id: 'ignis_evo', name: 'Ignis Evoluído', types: ['fogo'],
-    description: 'Juba de fogo vivo e rachaduras de lava pelo corpo.',
-    base: { hp: 72, atk: 92, def: 68, spd: 88 }, learnset: IGNIS_LS,
-    catchRate: 20, xpYield: 160, shape: 'triangle',
+    id: 'ignis_evo', name: 'Ignara', types: ['fogo'],
+    description: 'Mais ágil e alta, com uma juba de fogo vivo nos ombros e rachaduras de lava brilhando entre as escamas.',
+    base: { hp: 62, atk: 80, def: 58, spd: 80 }, learnset: IGNIS_LS, evolution: { level: 24, into: 'ignis_evo2' },
+    catchRate: 25, xpYield: 140, shape: 'triangle',
+  }),
+  ignis_evo2: s({
+    id: 'ignis_evo2', name: 'Solaryx', types: ['fogo'],
+    description: 'Guardiã majestosa de escamas vinho com veios de lava dourada e um disco solar de chamas atrás da cabeça.',
+    base: { hp: 80, atk: 100, def: 74, spd: 96 }, learnset: IGNIS_LS,
+    catchRate: 10, xpYield: 220, shape: 'triangle',
   }),
   aquaris: s({
     id: 'aquaris', name: 'Aquaris', types: ['agua'],
@@ -235,3 +241,14 @@ export const getSpecies = (id: string): SpeciesData => {
   if (!sp) throw new Error(`Espécie desconhecida: ${id}`);
   return sp;
 };
+
+/** Primeira forma da linha evolutiva (ex.: ignis_evo2 -> ignis). */
+export function rootSpecies(id: string): string {
+  let cur = id;
+  for (let guard = 0; guard < 10; guard++) {
+    const prev = Object.values(SPECIES).find((sp) => sp.evolution?.into === cur);
+    if (!prev) return cur;
+    cur = prev.id;
+  }
+  return cur;
+}

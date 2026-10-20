@@ -124,7 +124,8 @@ export class PartyScene extends BaseScene {
       box.add(makeText(this, x + 34, y + 260 + i * 24, `${mv.supreme ? '★ ' : ''}${mv.name}`, 14, UI.text));
       box.add(makeText(this, x + 276, y + 260 + i * 24, mv.power ? `${mv.power}` : '—', 14, UI.textDim).setOrigin(1, 0));
     });
-    box.add(makeText(this, x + 20, y + 382, sp.description, 11, UI.textDim, { wordWrap: { width: 256 } }).setOrigin(0, 1));
+    // descrição só quando sobra espaço abaixo dos golpes
+    if (moves.length <= 3) box.add(makeText(this, x + 20, y + 382, sp.description, 11, UI.textDim, { wordWrap: { width: 256 } }).setOrigin(0, 1));
   }
 
   private buildActions(): void {

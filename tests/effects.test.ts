@@ -177,12 +177,23 @@ describe('XP, nível e evolução', () => {
     evolve(m);
     expect(m.species).toBe('ignis_evo');
     expect(statsOf(m).hp).toBeGreaterThan(hpBefore);
-    expect(getSpecies(m.species).name).toBe('Ignis Evoluído');
+    expect(getSpecies(m.species).name).toBe('Ignara');
   });
 
   it('XP de treinador vale 1.5x', () => {
     const e = createMonster('umbrel', 10);
     expect(xpReward(e, 'trainer')).toBe(Math.floor(xpReward(e, 'wild') * 1.5));
+  });
+});
+
+describe('linha do Ignis (3 formas)', () => {
+  it('Ignis → Ignara (Nv 10) → Solaryx (Nv 24)', () => {
+    const m = createMonster('ignis', 9);
+    gainXp(m, xpForLevel(10) - m.xp);
+    expect(evolve(m)).toBe('ignis_evo');
+    gainXp(m, xpForLevel(24) - m.xp);
+    expect(evolve(m)).toBe('ignis_evo2');
+    expect(getSpecies(m.species).name).toBe('Solaryx');
   });
 });
 

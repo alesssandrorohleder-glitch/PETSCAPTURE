@@ -437,11 +437,18 @@ export function monsterTexture(scene: Phaser.Scene, speciesId: string): string {
   return ensure(scene, `monsters/${speciesId}`, size, size, (g) => {
     const main = ELEMENTS[sp.types[0]].color;
     const second = sp.types[1] ? ELEMENTS[sp.types[1]].color : shade(main, 1.3);
-    const evolved = sp.id.endsWith('_evo');
-    const r = evolved ? 54 : 42;
+    // estágio na linha evolutiva: 0 = base, 1 = 1ª evolução, 2 = 2ª evolução
+    const stage = /_evo2$/.test(sp.id) ? 2 : /_evo$/.test(sp.id) ? 1 : 0;
+    const evolved = stage > 0;
+    const r = stage === 2 ? 56 : evolved ? 52 : 42;
     const cx = size / 2;
     const cy = size / 2 + (evolved ? 4 : 10);
     g.fillStyle(0x000000, 0.25).fillEllipse(cx, size - 8, r * 1.6, 12);
+    if (stage === 2) {
+      // halo atrás da cabeça (forma final)
+      g.fillStyle(second, 0.35).fillCircle(cx, cy - r * 0.35, r + 6);
+      g.lineStyle(3, second, 0.9).strokeCircle(cx, cy - r * 0.35, r + 6);
+    }
     if (evolved) {
       // "coroa" de pontas para formas evoluídas
       g.fillStyle(second);

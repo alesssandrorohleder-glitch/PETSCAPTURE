@@ -101,7 +101,7 @@ describe('equilíbrio dos biomas (equipe realista)', () => {
   for (const [map, level, caught] of ROUTE) {
     it(`${map}: cada pet inicial + capturados vence a maioria (Nv ${level})`, () => {
       const out = TRAINERS.filter((x) => x.selectable).map((t) => {
-        const starter = level >= 10 ? `${t.starter}_evo` : t.starter;
+        const starter = formAt(t.starter, level);
         const solo = teamWinRate([[starter, level]], map);
         const team = teamWinRate([[starter, level], ...caught.map((c) => [c, level - 2] as [string, number])], map);
         return { name: t.starter, solo, team };
@@ -153,7 +153,7 @@ describe('equilíbrio da história', () => {
   for (const [name, level, caught, enemy] of STORY) {
     it(`${name}: dá para vencer com uma equipe típica`, () => {
       const rates = TRAINERS.filter((x) => x.selectable).map((t) => {
-        const team: [string, number][] = [[level >= 10 ? `${t.starter}_evo` : t.starter, level], ...caught.map((c) => [c, level - 2] as [string, number])];
+        const team: [string, number][] = [[formAt(t.starter, level), level], ...caught.map((c) => [c, level - 2] as [string, number])];
         return [t.starter, trainerWinRate(team, enemy)] as const;
       });
       console.log(`  ${name}: ` + rates.map(([n, r]) => `${n} ${(r * 100).toFixed(0)}%`).join(', '));
