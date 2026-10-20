@@ -46,14 +46,18 @@ interface Features {
   stinger: boolean;
   crown: boolean;
   mane: boolean;
+  mole: boolean;
+  amethyst: boolean;
+  hybrid: boolean;
 }
 
 function featuresOf(sp: SpeciesData): Features {
   const t = `${sp.name} ${sp.description}`.toLowerCase();
   const has = (re: RegExp) => re.test(t);
   const fox = has(/raposa|feneco|lebre|lontra/);
+  const mole = has(/toupeir/);
   return {
-    body: has(/larva|seixo|geodo|pedregulho|bolinha|água-viva|lanterna|penugem|broto saltitante/) ? 'round' : !fox && has(/pássaro|passarinho|\bave\b|águia|corvo|pinguim/) ? 'bird' : 'quad',
+    body: mole ? 'quad' : has(/larva|seixo|geodo|pedregulho|bolinha|água-viva|lanterna|penugem|broto saltitante/) ? 'round' : !fox && has(/pássaro|passarinho|\bave\b|águia|corvo|pinguim/) ? 'bird' : 'quad',
     bigEars: has(/feneco|lebre|orelhas enormes/),
     catEars: has(/gato|pantera|felino/),
     horns: has(/bode|cabrit|chifre|rinoceronte/),
@@ -67,6 +71,9 @@ function featuresOf(sp: SpeciesData): Features {
     stinger: has(/escorpião|ferrão/),
     crown: has(/coroa/),
     mane: has(/juba/),
+    mole,
+    amethyst: has(/geodo|ametista/),
+    hybrid: has(/híbrid/),
   };
 }
 
@@ -307,6 +314,72 @@ function tentacles(c: Ctx, bottom: number): void {
   }
 }
 
+const AMETHYST = 0xb15cf0;
+
+/** Ponta de cristal de ametista (geodos e drusas). */
+function amethystCluster(c: Ctx, x: number, y: number, s: number, n: number): void {
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0 : i / (n - 1) - 0.5;
+    const h = (14 + (i % 2 ? 0 : 6) - Math.abs(t) * 8) * s;
+    const xx = x + t * 18 * s;
+    crystal(c.g, xx, y, 4.2 * s, h, i % 2 ? AMETHYST : mix(AMETHYST, 0xffffff, 0.35));
+  }
+}
+
+/** Placas de rocha nas costas da toupeira (aparecem a partir da 1ª evolução). */
+function rockPlates(c: Ctx): void {
+  const { g, cx, bodyY, bodyW, bodyH, k, stage, dark } = c;
+  const n = 2 + stage * 2;
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n;
+    const a = Math.PI * (1.12 + t * 0.76);
+    const x = cx + Math.cos(a) * bodyW * 0.36;
+    const y = bodyY + Math.sin(a) * bodyH * 0.42;
+    const r = (6 + stage * 1.5) * k;
+    const col = i % 2 ? 0x8d8f94 : 0xa8aab0;
+    g.fillStyle(col).fillPoints([V(x - r, y + r * 0.5), V(x - r * 0.7, y - r * 0.6), V(x + r * 0.2, y - r), V(x + r, y - r * 0.3), V(x + r * 0.8, y + r * 0.6)], true);
+    g.lineStyle(1.2, dark, 0.8).strokePoints([V(x - r, y + r * 0.5), V(x - r * 0.7, y - r * 0.6), V(x + r * 0.2, y - r), V(x + r, y - r * 0.3), V(x + r * 0.8, y + r * 0.6)], true);
+    if (stage === 2) g.lineStyle(1.5 * k, 0xff9f1c, 0.9).lineBetween(x - r * 0.4, y - r * 0.4, x + r * 0.1, y + r * 0.3);
+  }
+}
+
+/** Garras de cavar nas patas da frente. */
+function claws(c: Ctx, x: number): void {
+  const { g, k, stage } = c;
+  const ground = 124;
+  const len = (5 + stage * 2.5) * k;
+  for (let i = -1; i <= 1; i++) {
+    const bx = x + i * 3.5 * k;
+    g.fillStyle(0xf1e3c8).fillTriangle(bx - 1.8 * k, ground - 4 * k, bx + 1.8 * k, ground - 4 * k, bx + i * 2 * k - 1.5 * k, ground + len * 0.35);
+    g.lineStyle(1, 0x6c584c, 0.8).strokeTriangle(bx - 1.8 * k, ground - 4 * k, bx + 1.8 * k, ground - 4 * k, bx + i * 2 * k - 1.5 * k, ground + len * 0.35);
+  }
+}
+
+/** Manchas do segundo elemento no corpo dos híbridos (gotas, chamas, folhas, raios...). */
+function hybridMarks(c: Ctx, el2: ElementId, x: number, y: number, r: number): void {
+  const { g, k, stage } = c;
+  const col = ELEMENTS[el2].color;
+  const n = 2 + stage;
+  for (let i = 0; i < n; i++) {
+    const a = -0.9 + (i / Math.max(1, n - 1)) * 1.8;
+    const px = x + Math.sin(a) * r;
+    const py = y + Math.cos(a) * r * 0.45 - r * 0.2;
+    const s = k * 0.55;
+    switch (el2) {
+      case 'fogo': flame(g, px, py + 4 * s, s); break;
+      case 'agua': g.fillStyle(col).fillCircle(px, py, 3.2 * s * 1.4).fillTriangle(px - 4.4 * s, py - 1, px, py - 9 * s, px + 4.4 * s, py - 1); break;
+      case 'grama': leaf(g, px, py, s, -Math.PI / 2 + a * 0.4, col); break;
+      case 'eletrico': bolt(g, px - 2 * s, py + 8 * s, s, 0xffee32); break;
+      case 'terra': case 'pedra': rock(g, px, py + 4 * s, s * 1.1, shade(col, 1.1)); break;
+      default: g.fillStyle(col, 0.85).fillCircle(px, py, 3.5 * s * 1.4);
+    }
+  }
+  if (el2 === 'fogo' || el2 === 'eletrico') {
+    // rachaduras brilhando
+    g.lineStyle(1.4 * k, el2 === 'fogo' ? 0xff7b00 : 0x4cc9f0, 0.9).beginPath().moveTo(x - r * 0.9, y + r * 0.3).lineTo(x - r * 0.5, y).lineTo(x - r * 0.65, y - r * 0.35).strokePath();
+  }
+}
+
 /** Desenha a criatura no Graphics (quadro 128×128). */
 export function drawCreature(g: G, sp: SpeciesData): void {
   const el = sp.types[0];
@@ -315,7 +388,9 @@ export function drawCreature(g: G, sp: SpeciesData): void {
   const f = featuresOf(sp);
   const k = [0.92, 1.06, 1.2][stage];
   const hv = (hash(rootSpecies(sp.id)) % 1000) / 1000;
-  const main = lineColor(ELEMENTS[el].color, hv, stage);
+  const main0 = lineColor(ELEMENTS[el].color, hv, stage);
+  // toupeira: pedra misturada com o marrom da terra
+  const main = f.mole ? mix(main0, ELEMENTS.terra.color, 0.6) : f.hybrid && el2 ? mix(main0, ELEMENTS[el2].color, el2 === 'agua' ? 0.08 : 0.2) : main0;
   const c: Ctx = {
     g, k, stage, f, cx: 62, main,
     dark: shade(main, 0.6),
@@ -353,6 +428,13 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     c.headX = c.cx - 4 * k;
     c.headY = c.bodyY - c.bodyH * 0.45 - c.headR * 0.6;
     c.tail = { x: c.cx + c.bodyW * 0.62 + 12 * k, y: c.bodyY - c.bodyH * 0.5 - 18 * k };
+    if (f.mole) {
+      c.bodyW *= 1.12;
+      c.bodyH *= 1.05;
+      c.bodyY = ground - 10 * k - c.bodyH * 0.4;
+      c.headY = c.bodyY - c.bodyH * 0.3 - c.headR * 0.5;
+      c.tail = { x: c.cx + c.bodyW * 0.55, y: c.bodyY - 4 * k };
+    }
   }
 
   // ---------- atrás do corpo
@@ -360,6 +442,18 @@ export function drawCreature(g: G, sp: SpeciesData): void {
   if (stage === 2) {
     g.fillStyle(c.accent, 0.16).fillCircle(c.headX, c.headY - 2, c.headR + 18 * k);
     g.lineStyle(2, c.accent, 0.55).strokeCircle(c.headX, c.headY - 2, c.headR + 18 * k);
+  }
+  if (f.mole) {
+    g.fillStyle(0x7f5539).fillEllipse(c.cx, ground - 2, c.bodyW * 1.5, 14 * k);
+    g.fillStyle(0x9c6644).fillEllipse(c.cx - 6 * k, ground - 5, c.bodyW * 0.9, 8 * k);
+    if (stage === 2) {
+      g.lineStyle(2, 0x7f5539, 0.8);
+      for (const side of [-1, 1]) g.beginPath().moveTo(c.cx + side * c.bodyW * 0.75, ground - 2).lineTo(c.cx + side * (c.bodyW * 0.75 + 6 * k), ground - 8 * k).lineTo(c.cx + side * (c.bodyW * 0.75 + 3 * k), ground - 12 * k).lineTo(c.cx + side * (c.bodyW * 0.75 + 9 * k), ground - 18 * k).strokePath();
+    }
+  }
+  if (f.hybrid && ((el === 'fogo' && el2 === 'agua') || (el === 'agua' && el2 === 'fogo'))) {
+    // vapor subindo das costas
+    for (let i = 0; i < 3 + stage; i++) g.fillStyle(0xffffff, 0.5 - i * 0.07).fillCircle(c.cx + 10 * k + i * 5 * k, c.bodyY - c.bodyH * 0.6 - i * 9 * k, (6 + i * 2.5) * k);
   }
   if (f.mothWings) mothWings(c);
   else if (f.body === 'bird' || el === 'vento' || el2 === 'vento') wings(c, 'vento');
@@ -372,7 +466,9 @@ export function drawCreature(g: G, sp: SpeciesData): void {
       g.fillStyle(i % 2 ? c.accent : shade(c.accent, 0.8)).fillTriangle(c.headX + Math.cos(a - 0.25) * c.headR * 0.8, c.headY + Math.sin(a - 0.25) * c.headR * 0.8, c.headX + Math.cos(a) * len, c.headY + Math.sin(a) * len, c.headX + Math.cos(a + 0.25) * c.headR * 0.8, c.headY + Math.sin(a + 0.25) * c.headR * 0.8);
     }
   }
-  if (f.body === 'quad') {
+  if (f.mole) {
+    g.fillStyle(c.dark).fillEllipse(c.tail.x, c.tail.y, 10 * k, 6 * k);
+  } else if (f.body === 'quad') {
     // cauda: bolinhas que afinam até a ponta (ferrão curvo no escorpião)
     const t0 = { x: c.cx + c.bodyW * 0.42, y: c.bodyY };
     for (let i = 0; i <= 8; i++) {
@@ -382,7 +478,7 @@ export function drawCreature(g: G, sp: SpeciesData): void {
       g.fillStyle(i % 3 === 0 ? c.dark : c.main).fillCircle(x, y, (7 - t * 4) * k);
     }
     if (f.stinger) g.fillStyle(c.accent).fillTriangle(c.tail.x - 5 * k, c.tail.y, c.tail.x - 12 * k, c.tail.y + 10 * k, c.tail.x + 2 * k, c.tail.y + 4 * k);
-    else tailTip(c, el);
+    else tailTip(c, f.hybrid && el2 ? el2 : el);
   } else if (f.body === 'bird') {
     for (let i = 0; i < 3; i++) g.fillStyle(i % 2 ? c.light : c.dark).fillTriangle(c.tail.x - 6 * k, c.tail.y - 4 * k, c.tail.x + (12 + i * 2) * k, c.tail.y + (i * 6 - 4) * k, c.tail.x - 4 * k, c.tail.y + 6 * k);
   }
@@ -394,8 +490,16 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     if (f.tentacles) g.fillStyle(c.main, 0.85).fillEllipse(c.cx, c.bodyY, c.headR * 2.1, c.headR * 1.7);
     else g.fillStyle(c.main).fillCircle(c.cx, c.bodyY, c.headR);
     g.lineStyle(2, c.dark, 0.8).strokeCircle(c.cx, c.bodyY, c.headR);
-    g.fillStyle(belly).fillEllipse(c.cx, c.bodyY + c.headR * 0.5, c.headR * 1.1, c.headR * 0.6);
-    if (f.shell || el === 'pedra') backSpikes(c, 3 + stage * 2);
+    if (!f.amethyst) g.fillStyle(belly).fillEllipse(c.cx, c.bodyY + c.headR * 0.5, c.headR * 1.1, c.headR * 0.6);
+    if (f.hybrid && el2) {
+      hybridMarks(c, el2, c.cx, c.bodyY - c.headR * 0.05, c.headR * 0.55);
+      tailTip({ ...c, tail: { x: c.cx + c.headR * 0.95, y: c.bodyY - c.headR * 0.35 } }, el2);
+    }
+    if (f.amethyst) {
+      g.fillStyle(0x3c096c).fillEllipse(c.cx + c.headR * 0.05, c.bodyY + c.headR * 0.42, c.headR * 1.0, c.headR * 0.5);
+      for (let i = 0; i < 4; i++) crystal(g, c.cx + (i - 1.5) * 6 * k, c.bodyY + c.headR * 0.62, 3 * k, (7 + (i % 2) * 4) * k, i % 2 ? AMETHYST : mix(AMETHYST, 0xffffff, 0.4));
+      g.lineStyle(1.5, c.dark).strokeEllipse(c.cx + c.headR * 0.05, c.bodyY + c.headR * 0.42, c.headR * 1.0, c.headR * 0.5);
+    } else if (f.shell || el === 'pedra') backSpikes(c, 3 + stage * 2);
   } else {
     const legH = 12 * k;
     const leg = (x: number, col: number, thin = false) => {
@@ -415,19 +519,27 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     g.lineStyle(2, c.dark, 0.8).strokeEllipse(c.cx, c.bodyY, c.bodyW, c.bodyH);
     g.fillStyle(belly).fillEllipse(c.cx - 3 * k, c.bodyY + c.bodyH * 0.12, c.bodyW * 0.5, c.bodyH * 0.55);
     if (f.shell) shell(c);
-    if (f.spikes) backSpikes(c, 7 + stage * 2);
+    if (f.hybrid && el2) hybridMarks(c, el2, c.cx + c.bodyW * 0.18, c.bodyY - c.bodyH * 0.1, c.bodyW * 0.22);
+    if (f.mole) {
+      if (stage >= 1) rockPlates(c);
+    } else if (f.amethyst) amethystCluster(c, c.cx + c.bodyW * 0.12, c.bodyY - c.bodyH * 0.3, k * (0.9 + stage * 0.2), 3 + stage);
+    else if (f.spikes) backSpikes(c, 7 + stage * 2);
     else if (stage >= 1) backSpikes(c, 2 + stage * 2);
-    if (stage >= 1) {
+    if (stage >= 1 && !f.mole) {
       for (let i = 0; i < stage + 1; i++) {
         const x = c.cx + c.bodyW * (0.12 + i * 0.12);
         const y = c.bodyY + (i % 2 ? 4 : -3) * k;
         g.fillStyle(c.accent, 0.85).fillPoints([V(x, y - 3 * k), V(x + 3 * k, y), V(x, y + 3 * k), V(x - 3 * k, y)], true);
       }
     }
-    if (el === 'pedra' || el2 === 'pedra') g.lineStyle(1.5, c.dark, 0.9).beginPath().moveTo(c.cx - 8 * k, c.bodyY - 8 * k).lineTo(c.cx - 3 * k, c.bodyY).lineTo(c.cx - 7 * k, c.bodyY + 7 * k).strokePath();
+    if ((el === 'pedra' || el2 === 'pedra') && !f.mole) g.lineStyle(1.5, c.dark, 0.9).beginPath().moveTo(c.cx - 8 * k, c.bodyY - 8 * k).lineTo(c.cx - 3 * k, c.bodyY).lineTo(c.cx - 7 * k, c.bodyY + 7 * k).strokePath();
     if (f.body === 'quad') {
       leg(c.cx - c.bodyW * 0.18, c.main);
       leg(c.cx + c.bodyW * 0.16, c.main);
+      if (f.mole) {
+        claws(c, c.cx - c.bodyW * 0.18);
+        claws(c, c.cx + c.bodyW * 0.16);
+      }
     } else {
       leg(c.cx - 6 * k, c.main, true);
       leg(c.cx + 6 * k, c.main, true);
@@ -453,13 +565,20 @@ export function drawCreature(g: G, sp: SpeciesData): void {
         g.fillStyle(mix(c.main, 0xffd6a5, 0.6)).fillTriangle(bx - 5 * k, by + 3, bx + side * 8 * k, by - tall * 0.75, bx + 5 * k, by + 2);
       }
       if (el === 'fogo') flame(g, c.headX, c.headY - c.headR * 0.85, 0.6 * k + stage * 0.15);
+    } else if (f.mole) {
+      g.fillStyle(c.dark).fillCircle(c.headX - c.headR * 0.8, c.headY - c.headR * 0.45, 4.5 * k).fillCircle(c.headX + c.headR * 0.8, c.headY - c.headR * 0.45, 4.5 * k);
+      if (stage === 0) rock(g, c.headX + c.headR * 0.2, c.headY - c.headR * 0.8, k * 0.9, 0xa8aab0);
+      else for (let i = 0; i < stage + 1; i++) rock(g, c.headX + (i - stage / 2) * 9 * k, c.headY - c.headR * 0.75, k * (0.9 + stage * 0.15), i % 2 ? 0x8d8f94 : 0xa8aab0);
+    } else if (f.amethyst) {
+      amethystCluster(c, c.headX + 2 * k, c.headY - c.headR * 0.7, k * (0.7 + stage * 0.15), 2 + stage);
     } else if (!f.beak || f.body !== 'bird') ears(c, el);
     if (f.beak && f.body === 'bird') {
       for (const side of [-1, 1]) g.fillStyle(c.dark).fillTriangle(c.headX + side * c.headR * 0.3, c.headY - c.headR * 0.7, c.headX + side * c.headR * 0.75, c.headY - c.headR * 1.25 - stage * 3, c.headX + side * c.headR * 0.8, c.headY - c.headR * 0.45);
     }
   } else {
     // corpo redondo: o "topo" é a cabeça
-    if (el === 'pedra' || f.shell) ears(c, 'pedra');
+    if (f.amethyst) amethystCluster(c, c.headX + 3 * k, c.headY - c.headR * 0.72, k * 1.05, 4);
+    else if (el === 'pedra' || f.shell) ears(c, 'pedra');
     else if (!f.tentacles) ears(c, el);
   }
   if (f.horns) horns(c);
@@ -476,10 +595,11 @@ export function drawCreature(g: G, sp: SpeciesData): void {
       g.fillStyle(i % 2 ? 0xff8fab : 0xff4d6d).fillTriangle(x - 3 * k, c.headY - c.headR * 0.8, x, top, x + 3 * k, c.headY - c.headR * 0.8);
     }
   }
-  if (el2 && el2 !== el) g.fillStyle(ELEMENTS[el2].color).fillCircle(c.headX, c.headY - c.headR * 0.6, 3 * k);
+  if (f.hybrid && el2 && f.body !== 'round') tailTip({ ...c, k: k * 0.7, stage: 0, tail: { x: c.headX - c.headR * 0.75, y: c.headY - c.headR * 0.35 } }, el2);
+  else if (el2 && el2 !== el) g.fillStyle(ELEMENTS[el2].color).fillCircle(c.headX, c.headY - c.headR * 0.6, 3 * k);
 
   // ---------- rosto
-  const er = c.headR * (stage === 0 ? 0.3 : 0.26) * (f.body === 'round' ? 0.8 : 1);
+  const er = c.headR * (stage === 0 ? 0.3 : 0.26) * (f.body === 'round' ? 0.8 : 1) * (f.mole ? 0.62 : 1);
   const eyH = stage === 2 ? 0.78 : 1;
   const iris = el === 'sombra' ? 0xc77dff : el === 'fogo' ? 0xffb703 : el === 'gelo' ? 0x48cae4 : el === 'grama' && f.mothWings ? 0xff9f1c : 0x1d1d2b;
   const eyeY = c.headY - c.headR * (f.body === 'round' ? 0.2 : 0.05);
@@ -490,8 +610,15 @@ export function drawCreature(g: G, sp: SpeciesData): void {
     g.fillStyle(0x10101a).fillEllipse(ex + side * 0.5, eyeY + 1.5, er * 0.7, er * 1.0 * eyH);
     g.fillStyle(0xffffff).fillCircle(ex - er * 0.3, eyeY - er * 0.4, er * 0.32).fillCircle(ex + er * 0.25, eyeY + er * 0.35, er * 0.15);
   }
-  const mouthY = eyeY + c.headR * 0.45;
-  if (f.beak) {
+  const mouthY = eyeY + c.headR * (f.mole ? 0.72 : 0.45);
+  if (f.mole) {
+    // focinho comprido com nariz de seixo
+    g.fillStyle(mix(c.main, 0xfff1e6, 0.45)).fillEllipse(c.headX, eyeY + c.headR * 0.42, c.headR * 0.85, c.headR * 0.55);
+    g.fillStyle(0xb5838d).fillEllipse(c.headX, eyeY + c.headR * 0.3, c.headR * 0.42, c.headR * 0.28);
+    g.fillStyle(0xffffff, 0.6).fillCircle(c.headX - c.headR * 0.08, eyeY + c.headR * 0.24, c.headR * 0.07);
+    g.lineStyle(1.6, 0x3d1f1f).beginPath().arc(c.headX, mouthY - c.headR * 0.08, c.headR * 0.12, 0.15 * Math.PI, 0.85 * Math.PI).strokePath();
+    g.fillStyle(0xffffff).fillRect(c.headX - 2.5 * k, mouthY - c.headR * 0.02, 2.2 * k, 3 * k).fillRect(c.headX + 0.3 * k, mouthY - c.headR * 0.02, 2.2 * k, 3 * k);
+  } else if (f.beak) {
     g.fillStyle(0xf4a261).fillTriangle(c.headX - 5 * k, mouthY - 3 * k, c.headX + 5 * k, mouthY - 3 * k, c.headX, mouthY + 6 * k);
   } else {
     g.lineStyle(1.6, 0x3d1f1f).beginPath().arc(c.headX, mouthY, c.headR * 0.14, 0.15 * Math.PI, 0.85 * Math.PI).strokePath();

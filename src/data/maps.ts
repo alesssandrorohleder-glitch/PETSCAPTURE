@@ -296,6 +296,7 @@ const PRAIA: MapDef = {
   encounters: [
     { species: 'conchilo', min: 5, max: 8, weight: 55 },
     { species: 'medulume', min: 6, max: 9, weight: 45 },
+    { species: 'lodito', min: 5, max: 8, weight: 20 },
   ],
   rare: [{ species: 'aquaris', min: 6, max: 9 }],
 };
@@ -338,6 +339,7 @@ const PLANALTO: MapDef = {
   encounters: [
     { species: 'zumbolt', min: 9, max: 12, weight: 50 },
     { species: 'voltabico', min: 10, max: 13, weight: 50 },
+    { species: 'pimentinha', min: 9, max: 12, weight: 20 },
   ],
   rare: [{ species: 'voltix', min: 10, max: 13 }],
 };
@@ -380,6 +382,8 @@ const CANION: MapDef = {
   encounters: [
     { species: 'pedrusco', min: 13, max: 16, weight: 50 },
     { species: 'escorpedra', min: 13, max: 17, weight: 50 },
+    { species: 'lodito_evo', min: 13, max: 16, weight: 12 },
+    { species: 'pimentinha_evo', min: 14, max: 17, weight: 12 },
   ],
   rare: [
     { species: 'terragon', min: 13, max: 16 },
@@ -558,6 +562,10 @@ const VULCAO: MapDef = {
     { species: 'cabrasa_evo', min: 15, max: 18, weight: 19 },
     { species: 'carvonito_evo2', min: 24, max: 26, weight: 1 },
     { species: 'cabrasa_evo2', min: 24, max: 26, weight: 1 },
+    { species: 'vaporito', min: 12, max: 14, weight: 15 },
+    { species: 'tatubrasa', min: 12, max: 14, weight: 15 },
+    { species: 'vaporito_evo', min: 15, max: 18, weight: 6 },
+    { species: 'tatubrasa_evo', min: 15, max: 18, weight: 6 },
   ],
 };
 
@@ -603,6 +611,8 @@ const CRISTAL: MapDef = {
     { species: 'geodito_evo', min: 19, max: 23, weight: 19 },
     { species: 'seixito_evo2', min: 25, max: 27, weight: 1 },
     { species: 'geodito_evo2', min: 25, max: 27, weight: 1 },
+    { species: 'quartzito', min: 16, max: 18, weight: 15 },
+    { species: 'quartzito_evo', min: 19, max: 23, weight: 6 },
   ],
 };
 

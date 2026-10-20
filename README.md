@@ -133,8 +133,15 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
   `penugem` → `penugem_evo` (Rodopio) → `penugem_evo2` (Ciclonix)
 - Vulcão Rubro (Fogo): `carvonito` → `carvonito_evo` (Brasouriço) → `carvonito_evo2` (Vulcouriço);
   `cabrasa` → `cabrasa_evo` (Brasacorno) → `cabrasa_evo2` (Vulcorno)
-- Minas de Cristal (Pedra): `seixito` → `seixito_evo` (Pedrolho) → `seixito_evo2` (Monolito);
+- Minas de Cristal (Pedra): `seixito` → `seixito_evo` (Escavrocha) → `seixito_evo2` (Sismoto), Pedra/Terra;
   `geodito` → `geodito_evo` (Geodrusa) → `geodito_evo2` (Ametistão)
+- Híbridos (dois elementos):
+  `lodito` (Terra/Água; Praia) → `lodito_evo` (Charcossauro) → `lodito_evo2` (Pantanox);
+  `vaporito` (Fogo/Água; Vulcão) → `vaporito_evo` (Fumarel) → `vaporito_evo2` (Geiserão);
+  `pimentinha` (Grama/Fogo; Planalto) → `pimentinha_evo` (Malaguetor) → `pimentinha_evo2` (Capsiflora);
+  `tatubrasa` (Terra/Fogo; Vulcão) → `tatubrasa_evo` (Magmatatu) → `tatubrasa_evo2` (Calderatu);
+  `quartzito` (Pedra/Elétrico; Minas de Cristal) → `quartzito_evo` (Magnetrino) → `quartzito_evo2` (Piezolito).
+  Charcossauro e Malaguetor também aparecem no Cânion.
 
 **Tiles:** biomas `vila`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`, `vento`, `vulcao`, `cristal`;
 nomes `ground`, `path`, `tallgrass`, `tree`, `water`, `rock`, `flowers`, `fence`.
