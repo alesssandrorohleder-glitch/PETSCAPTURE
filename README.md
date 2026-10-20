@@ -3,7 +3,7 @@
 RPG de navegador de captura de monstrinhos, feito com **Phaser 3 + TypeScript + Vite**.
 Funciona no computador (teclado/mouse) e no celular (toque, com direcional na tela), em até Full HD.
 
-**Conteúdo:** 5 domadores + o rival Noctis · 6 biomas e a vila · 28 espécies · batalhas por turnos com
+**Conteúdo:** 5 domadores + o rival Noctis · 6 biomas e a vila · 33 espécies · batalhas por turnos com
 tipos, status, golpes supremos, XP e evolução · captura, equipe de 6, Caixa, loja · história com 3
 encontros com o Noctis, desafios dos amigos e treinadores andarilhos · salvamento automático · anúncios.
 
@@ -99,7 +99,11 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
 `w_lucia`, `w_jorge`, `w_sofia`, `w_ravi` — retrato em `trainers/<id>.png` e sprites em `overworld/<id>_down.png` etc.
 
 **Ids das espécies:**
-- Pets: `ignis` → `ignis_evo` (Ignara, Nv 10) → `ignis_evo2` (Solaryx, Nv 24); `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `aquaris_evo`)
+- Pets (3 formas cada: base → `_evo` no Nv 10 → `_evo2` no Nv 24):
+  `ignis` (Ignis → Ignara → Solaryx), `aquaris` (Aquaris → Ondarel → Coralyth),
+  `voltix` (Voltix → Voltrax → Trovalor), `terragon` (Terragon → Pedragon → Titambar),
+  `frostelle` (Frostelle → Nevelle → Aurorelle), `umbrel` (Umbrel → Umbrax → Eclipantera).
+  Ex.: `monsters/aquaris_evo2.png` e `monsters/aquaris_evo2_back.png`.
 - Floresta: `verdaki` → `verdamantis` (Nv 10) → `verdakor` (Nv 20), `larvilo`, `brotinho`
 - Praia: `conchilo`, `medulume`
 - Planalto: `zumbolt`, `voltabico`

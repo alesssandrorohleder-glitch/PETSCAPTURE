@@ -38,7 +38,7 @@ export const RIVAL: Record<'noctis1' | 'noctis2' | 'noctis3', TrainerBattleDef> 
   noctis2: {
     flag: 'noctis2',
     trainer: 'noctis',
-    team: [['umbrel_evo', 17], ['escorpedra', 15], ['corvanoite', 15]],
+    team: [['umbrel_evo', 19], ['escorpedra', 17], ['corvanoite', 17]],
     prize: 1200,
     intro: ['Você chegou até o Cânion. Admito: estou surpreso, {nome}.', 'Mas daqui em diante a coisa fica séria. Mostre o que aprendeu!'],
     win: ['Tsc... Umbrel, chega.', 'As Ruínas da Lua ficam depois dos Picos Congelados. Lá eu vou provar que a sombra é a força suprema.'],
@@ -47,7 +47,7 @@ export const RIVAL: Record<'noctis1' | 'noctis2' | 'noctis3', TrainerBattleDef> 
   noctis3: {
     flag: 'noctis3',
     trainer: 'noctis',
-    team: [['umbrel_evo', 30], ['corvanoite', 27], ['sombrelo', 27], ['nevasco', 26]],
+    team: [['umbrel_evo2', 30], ['corvanoite', 27], ['sombrelo', 27], ['nevasco', 26]],
     prize: 5000,
     final: true,
     intro: [

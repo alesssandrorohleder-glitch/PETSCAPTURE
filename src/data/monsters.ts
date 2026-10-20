@@ -66,10 +66,16 @@ export const SPECIES: Record<string, SpeciesData> = {
     catchRate: 45, xpYield: 64, shape: 'blob',
   }),
   aquaris_evo: s({
-    id: 'aquaris_evo', name: 'Aquaris Evoluído', types: ['agua'],
-    description: 'Serpente guardiã do mar com coroa de coral.',
-    base: { hp: 85, atk: 80, def: 82, spd: 75 }, learnset: AQUARIS_LS,
-    catchRate: 20, xpYield: 160, shape: 'blob',
+    id: 'aquaris_evo', name: 'Ondarel', types: ['agua'],
+    description: 'Mais longo e veloz, com barbatanas como ondas e um colar de bolhas brilhantes.',
+    base: { hp: 73, atk: 69, def: 71, spd: 65 }, learnset: AQUARIS_LS, evolution: { level: 24, into: 'aquaris_evo2' },
+    catchRate: 25, xpYield: 140, shape: 'blob',
+  }),
+  aquaris_evo2: s({
+    id: 'aquaris_evo2', name: 'Coralyth', types: ['agua'],
+    description: 'Serpente guardiã do mar, de escamas safira e uma coroa de coral cintilante.',
+    base: { hp: 93, atk: 87, def: 89, spd: 82 }, learnset: AQUARIS_LS,
+    catchRate: 10, xpYield: 220, shape: 'blob',
   }),
   voltix: s({
     id: 'voltix', name: 'Voltix', types: ['eletrico'],
@@ -78,10 +84,16 @@ export const SPECIES: Record<string, SpeciesData> = {
     catchRate: 45, xpYield: 64, shape: 'star',
   }),
   voltix_evo: s({
-    id: 'voltix_evo', name: 'Voltix Evoluído', types: ['eletrico'],
-    description: 'Lobo do trovão com juba de relâmpagos.',
-    base: { hp: 68, atk: 88, def: 62, spd: 105 }, learnset: VOLTIX_LS,
-    catchRate: 20, xpYield: 160, shape: 'star',
+    id: 'voltix_evo', name: 'Voltrax', types: ['eletrico'],
+    description: 'Lobo jovem de patas longas, com faíscas saltando das orelhas e da cauda.',
+    base: { hp: 58, atk: 76, def: 53, spd: 90 }, learnset: VOLTIX_LS, evolution: { level: 24, into: 'voltix_evo2' },
+    catchRate: 25, xpYield: 140, shape: 'star',
+  }),
+  voltix_evo2: s({
+    id: 'voltix_evo2', name: 'Trovalor', types: ['eletrico'],
+    description: 'Lobo do trovão de pelagem dourada e uma juba feita de relâmpagos.',
+    base: { hp: 74, atk: 96, def: 68, spd: 114 }, learnset: VOLTIX_LS,
+    catchRate: 10, xpYield: 220, shape: 'star',
   }),
   terragon: s({
     id: 'terragon', name: 'Terragon', types: ['terra'],
@@ -90,10 +102,16 @@ export const SPECIES: Record<string, SpeciesData> = {
     catchRate: 45, xpYield: 64, shape: 'square',
   }),
   terragon_evo: s({
-    id: 'terragon_evo', name: 'Terragon Evoluído', types: ['terra'],
-    description: 'Titã de pedra com cristais âmbar.',
-    base: { hp: 90, atk: 90, def: 100, spd: 50 }, learnset: TERRAGON_LS,
-    catchRate: 20, xpYield: 160, shape: 'square',
+    id: 'terragon_evo', name: 'Pedragon', types: ['terra'],
+    description: 'Maior e mais pesado, com placas de rocha sobrepostas e um chifre de cristal mais longo.',
+    base: { hp: 77, atk: 77, def: 86, spd: 43 }, learnset: TERRAGON_LS, evolution: { level: 24, into: 'terragon_evo2' },
+    catchRate: 25, xpYield: 140, shape: 'square',
+  }),
+  terragon_evo2: s({
+    id: 'terragon_evo2', name: 'Titambar', types: ['terra'],
+    description: 'Titã de pedra com cristais âmbar brotando dos ombros e das costas.',
+    base: { hp: 98, atk: 98, def: 109, spd: 55 }, learnset: TERRAGON_LS,
+    catchRate: 10, xpYield: 220, shape: 'square',
   }),
   frostelle: s({
     id: 'frostelle', name: 'Frostelle', types: ['gelo'],
@@ -102,10 +120,16 @@ export const SPECIES: Record<string, SpeciesData> = {
     catchRate: 45, xpYield: 64, shape: 'diamond',
   }),
   frostelle_evo: s({
-    id: 'frostelle_evo', name: 'Frostelle Evoluída', types: ['gelo'],
-    description: 'Fênix-coruja de gelo com luz de aurora.',
-    base: { hp: 75, atk: 90, def: 72, spd: 88 }, learnset: FROSTELLE_LS,
-    catchRate: 20, xpYield: 160, shape: 'diamond',
+    id: 'frostelle_evo', name: 'Nevelle', types: ['gelo'],
+    description: 'Coruja-raposa elegante de asas largas, com flocos de neve girando ao redor.',
+    base: { hp: 65, atk: 77, def: 62, spd: 76 }, learnset: FROSTELLE_LS, evolution: { level: 24, into: 'frostelle_evo2' },
+    catchRate: 25, xpYield: 140, shape: 'diamond',
+  }),
+  frostelle_evo2: s({
+    id: 'frostelle_evo2', name: 'Aurorelle', types: ['gelo'],
+    description: 'Fênix-coruja de gelo cujas penas refletem as cores da aurora boreal.',
+    base: { hp: 82, atk: 98, def: 78, spd: 96 }, learnset: FROSTELLE_LS,
+    catchRate: 10, xpYield: 220, shape: 'diamond',
   }),
   umbrel: s({
     id: 'umbrel', name: 'Umbrel', types: ['sombra'],
@@ -114,10 +138,16 @@ export const SPECIES: Record<string, SpeciesData> = {
     catchRate: 30, xpYield: 70, shape: 'hexagon',
   }),
   umbrel_evo: s({
-    id: 'umbrel_evo', name: 'Umbrel Evoluído', types: ['sombra'],
-    description: 'Pantera sombria com asas de escuridão.',
-    base: { hp: 76, atk: 96, def: 70, spd: 94 }, learnset: UMBREL_LS,
-    catchRate: 15, xpYield: 170, shape: 'hexagon',
+    id: 'umbrel_evo', name: 'Umbrax', types: ['sombra'],
+    description: 'Felino ágil de orelhas pontudas e pequenas asas de membrana, envolto em névoa roxa.',
+    base: { hp: 65, atk: 83, def: 60, spd: 81 }, learnset: UMBREL_LS, evolution: { level: 24, into: 'umbrel_evo2' },
+    catchRate: 20, xpYield: 150, shape: 'hexagon',
+  }),
+  umbrel_evo2: s({
+    id: 'umbrel_evo2', name: 'Eclipantera', types: ['sombra'],
+    description: 'Pantera sombria com grandes asas de escuridão e olhos de lua violeta.',
+    base: { hp: 83, atk: 105, def: 76, spd: 102 }, learnset: UMBREL_LS,
+    catchRate: 8, xpYield: 230, shape: 'hexagon',
   }),
 
   // ------------------------------------------------ Selvagens

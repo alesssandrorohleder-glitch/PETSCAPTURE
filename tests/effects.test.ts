@@ -210,3 +210,13 @@ describe('linha do Verdakor (3 formas)', () => {
     expect(evolutionTarget(m)).toBeNull();
   });
 });
+
+describe('todos os pets iniciais têm 3 formas (Nv 10 e Nv 24)', () => {
+  for (const base of ['ignis', 'aquaris', 'voltix', 'terragon', 'frostelle', 'umbrel']) {
+    it(base, () => {
+      expect(getSpecies(base).evolution).toEqual({ level: 10, into: `${base}_evo` });
+      expect(getSpecies(`${base}_evo`).evolution).toEqual({ level: 24, into: `${base}_evo2` });
+      expect(getSpecies(`${base}_evo2`).evolution).toBeUndefined();
+    });
+  }
+});
