@@ -153,6 +153,21 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   await expectScene('World');
   const pet = await page.evaluate(() => { const p = window.__state.get().party[0]; return { sp: p.species, lv: p.level, moves: p.moves }; });
   assert(pet.sp === 'aquaris_evo' && pet.lv === 10 && pet.moves.includes('redemoinho'), `evoluiu e aprendeu (${JSON.stringify(pet)})`);
+
+  // ---------------- Etapa 5: passeio pelos biomas (entra pela saída de baixo e anda até a de cima)
+  for (const map of ['praia', 'planalto', 'canion', 'picos', 'ruinas']) {
+    await page.evaluate((m) => { Object.assign(window.__state.get(), { mapId: m, x: 14, y: 22, facing: 'up' }); const w = window.__game.scene.getScene('World'); w.scene.restart(); }, map);
+    await expectScene('World');
+    await page.evaluate(() => { window.__game.scene.getScene('World').encounterRate = 0; });
+    await walk('ArrowUp', 2);
+    await shot(`20-${map}`);
+    const cur = await st();
+    assert(cur.map === map, `bioma ${map} carregou`);
+  }
+  // Ruínas -> Picos pela saída de baixo
+  await walk('ArrowDown', 3);
+  await wait(500);
+  assert((await st()).map === 'picos', 'Ruínas ligam aos Picos');
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

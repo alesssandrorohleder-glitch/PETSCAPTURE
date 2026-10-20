@@ -30,6 +30,8 @@ const s = (d: SpeciesData): SpeciesData => d;
 
 /** Níveis padrão dos golpes dos pets iniciais: 1, 3, 5, 7, 10 e 15 (supremo). */
 const ls = (moves: string[], levels = [1, 3, 5, 7, 10, 15]) => moves.map((move, i) => ({ level: levels[i], move }));
+/** Learnset em pares [nível, golpe]. */
+const wl = (pairs: [number, string][]) => pairs.map(([level, move]) => ({ level, move }));
 const IGNIS_LS = ls(['faisca', 'cauda_brasa', 'garra_ignea', 'escudo_chamas', 'rajada_solar', 'fenix_ancestral']);
 const AQUARIS_LS = ls(['jato_dagua', 'bolha_prisao', 'onda_cortante', 'cura_mare', 'redemoinho', 'tsunami_abissal']);
 const VOLTIX_LS = ls(['choque', 'investida_relampago', 'campo_magnetico', 'paralisia', 'trovao_celeste', 'tempestade_mil_raios']);
@@ -126,6 +128,89 @@ export const SPECIES: Record<string, SpeciesData> = {
     base: { hp: 42, atk: 36, def: 40, spd: 38 },
     learnset: [{ level: 1, move: 'picada' }, { level: 4, move: 'fio_seda' }, { level: 7, move: 'picada_venenosa' }, { level: 11, move: 'enxame' }],
     catchRate: 200, xpYield: 40, shape: 'blob',
+  }),
+  // Floresta Encantada
+  brotinho: s({
+    id: 'brotinho', name: 'Brotinho', types: ['grama'],
+    description: 'Broto saltitante com duas folhas na cabeça que giram como hélice.',
+    base: { hp: 42, atk: 34, def: 40, spd: 40 },
+    learnset: wl([[1, 'investida'], [5, 'absorver'], [8, 'esporos_sono'], [12, 'folha_navalha']]),
+    catchRate: 190, xpYield: 42, shape: 'circle',
+  }),
+  // Praia e Recifes
+  conchilo: s({
+    id: 'conchilo', name: 'Conchilo', types: ['agua'],
+    description: 'Ermitão que mora numa concha espiral cheia de cracas coloridas.',
+    base: { hp: 50, atk: 52, def: 68, spd: 35 },
+    learnset: wl([[1, 'jato_dagua'], [5, 'bolha_prisao'], [9, 'onda_cortante'], [14, 'rolar_blindado']]),
+    catchRate: 150, xpYield: 60, shape: 'square',
+  }),
+  medulume: s({
+    id: 'medulume', name: 'Medulume', types: ['agua', 'eletrico'],
+    description: 'Água-viva translúcida que brilha com pequenas descargas nos tentáculos.',
+    base: { hp: 48, atk: 55, def: 45, spd: 60 },
+    learnset: wl([[1, 'choque'], [5, 'jato_dagua'], [8, 'paralisia'], [12, 'onda_cortante']]),
+    catchRate: 120, xpYield: 68, shape: 'blob',
+  }),
+  // Planalto da Tempestade
+  zumbolt: s({
+    id: 'zumbolt', name: 'Zumbolt', types: ['eletrico', 'inseto'],
+    description: 'Besouro de carapaça metálica que acumula estática nas antenas.',
+    base: { hp: 50, atk: 62, def: 55, spd: 58 },
+    learnset: wl([[1, 'picada'], [6, 'choque'], [10, 'enxame'], [13, 'investida_relampago']]),
+    catchRate: 120, xpYield: 75, shape: 'hexagon',
+  }),
+  voltabico: s({
+    id: 'voltabico', name: 'Voltabico', types: ['eletrico'],
+    description: 'Filhote de pássaro-trovão com penas eriçadas em forma de raio.',
+    base: { hp: 48, atk: 65, def: 45, spd: 78 },
+    learnset: wl([[1, 'choque'], [8, 'investida_relampago'], [12, 'campo_magnetico'], [16, 'trovao_celeste']]),
+    catchRate: 110, xpYield: 78, shape: 'star',
+  }),
+  // Cânion de Pedra
+  pedrusco: s({
+    id: 'pedrusco', name: 'Pedrusco', types: ['terra'],
+    description: 'Pedregulho vivo com musgo nas costas que rola ladeira abaixo por diversão.',
+    base: { hp: 65, atk: 68, def: 80, spd: 30 },
+    learnset: wl([[1, 'arremesso_pedra'], [10, 'rolar_blindado'], [14, 'muralha_rocha'], [17, 'tremor']]),
+    catchRate: 110, xpYield: 85, shape: 'circle',
+  }),
+  escorpedra: s({
+    id: 'escorpedra', name: 'Escorpedra', types: ['terra', 'inseto'],
+    description: 'Escorpião de casca arenosa com um ferrão de cristal âmbar.',
+    base: { hp: 55, atk: 78, def: 65, spd: 55 },
+    learnset: wl([[1, 'picada_venenosa'], [10, 'arremesso_pedra'], [14, 'tremor'], [18, 'lanca_cristal']]),
+    catchRate: 100, xpYield: 90, shape: 'triangle',
+  }),
+  // Picos Congelados
+  pinguelo: s({
+    id: 'pinguelo', name: 'Pinguelo', types: ['gelo', 'agua'],
+    description: 'Pinguim gorducho que desliza de barriga pelas encostas geladas.',
+    base: { hp: 68, atk: 65, def: 62, spd: 50 },
+    learnset: wl([[1, 'rajada_gelida'], [12, 'jato_dagua'], [16, 'espinhos_gelo'], [20, 'onda_cortante']]),
+    catchRate: 100, xpYield: 95, shape: 'blob',
+  }),
+  nevasco: s({
+    id: 'nevasco', name: 'Nevasco', types: ['gelo'],
+    description: 'Filhote de yeti de pelo azulado que solta flocos de neve ao espirrar.',
+    base: { hp: 75, atk: 80, def: 60, spd: 58 },
+    learnset: wl([[1, 'rajada_gelida'], [14, 'espinhos_gelo'], [19, 'nevasca'], [23, 'prisao_cristal']]),
+    catchRate: 90, xpYield: 105, shape: 'square',
+  }),
+  // Ruínas da Lua
+  sombrelo: s({
+    id: 'sombrelo', name: 'Sombrelo', types: ['sombra'],
+    description: 'Lanterna fantasma com uma chama violeta que hipnotiza quem olha.',
+    base: { hp: 60, atk: 75, def: 60, spd: 72 },
+    learnset: wl([[1, 'garra_sombria'], [18, 'ilusao'], [23, 'drenar_energia'], [27, 'lua_negra']]),
+    catchRate: 80, xpYield: 120, shape: 'diamond',
+  }),
+  corvanoite: s({
+    id: 'corvanoite', name: 'Corvanoite', types: ['sombra'],
+    description: 'Corvo de penas escuras como a noite e olhos de lua cheia.',
+    base: { hp: 62, atk: 85, def: 55, spd: 85 },
+    learnset: wl([[1, 'garra_sombria'], [20, 'passo_fantasma'], [25, 'drenar_energia'], [29, 'lua_negra']]),
+    catchRate: 70, xpYield: 125, shape: 'triangle',
   }),
 };
 

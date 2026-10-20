@@ -6,8 +6,9 @@ import { AudioManager } from '../systems/AudioManager';
 import { Controls } from '../systems/Controls';
 import { GameState, type PlayerState } from '../systems/GameState';
 import { createMonster } from '../systems/Monster';
+import { rollEncounter } from '../systems/Encounters';
 import type { BattleData } from './BattleScene';
-import { buildingTexture, overworldTexture, signTexture, tileTexture } from '../systems/Placeholders';
+import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
@@ -52,12 +53,13 @@ export class WorldScene extends BaseScene {
     this.look = getTrainer(this.st.trainerId).look;
 
     this.drawMap();
-    this.player = this.add.image(0, 0, overworldTexture(this, this.st.trainerId, this.look, this.st.facing)).setOrigin(0);
+    this.player = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1);
+    this.setFacing(this.st.facing);
     this.placePlayer();
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.map.grid[0].length * TILE, this.map.grid.length * TILE);
-    cam.startFollow(this.player, true, 0.2, 0.2, -TILE / 2, -TILE / 2);
+    cam.startFollow(this.player, true, 0.2, 0.2, 0, TILE / 2);
     cam.setRoundPixels(true);
 
     this.controls = new Controls(this);
@@ -92,9 +94,12 @@ export class WorldScene extends BaseScene {
     }
     for (const s of this.map.signs) this.add.image(s.x * TILE, s.y * TILE, signTexture(this)).setOrigin(0).setDepth(s.y * TILE + 1);
     for (const def of this.map.npcs) {
+      if (def.look === this.st.trainerId) continue; // o jogador não encontra a si mesmo
       const look = typeof def.look === 'string' ? getTrainer(def.look).look : def.look;
-      const sprite = this.add.image(def.x * TILE, def.y * TILE, overworldTexture(this, def.id, look, def.facing)).setOrigin(0).setDepth(def.y * TILE + 2);
-      this.npcs.push({ def, sprite, look });
+      const sprite = this.add.image(def.x * TILE + TILE / 2, (def.y + 1) * TILE, '__DEFAULT').setOrigin(0.5, 1).setDepth(def.y * TILE + 2);
+      const npc = { def, sprite, look };
+      this.applySprite(sprite, def.id, look, def.facing);
+      this.npcs.push(npc);
     }
   }
 
@@ -115,17 +120,19 @@ export class WorldScene extends BaseScene {
   }
 
   private placePlayer(): void {
-    this.player.setPosition(this.st.x * TILE, this.st.y * TILE).setDepth(this.st.y * TILE + 3);
+    this.player.setPosition(this.st.x * TILE + TILE / 2, (this.st.y + 1) * TILE).setDepth(this.st.y * TILE + 3);
+  }
+
+  /** Personagens ocupam até 1 tile de largura e 1,5 de altura (imagens maiores são reduzidas). */
+  private applySprite(img: Phaser.GameObjects.Image, id: string, look: TrainerData['look'], f: Facing): void {
+    const ref = overworldSprite(this, id, look, f);
+    img.setTexture(ref.key).setFlipX(ref.flipX);
+    fitInto(img, TILE * 1.25, TILE * 1.5);
   }
 
   private setFacing(f: Facing): void {
     this.st.facing = f;
-    this.player.setTexture(overworldTexture(this, this.st.trainerId, this.look, f));
-    this.player.setFlipX(this.textureIsCustom() && f === 'left');
-  }
-
-  private textureIsCustom(): boolean {
-    return this.player.texture.key === `overworld/${this.st.trainerId}`;
+    this.applySprite(this.player, this.st.trainerId, this.look, f);
   }
 
   // ------------------------------------------------------------------ colisão
@@ -174,8 +181,8 @@ export class WorldScene extends BaseScene {
     this.player.setDepth(ny * TILE + 3);
     this.tweens.add({
       targets: this.player,
-      x: nx * TILE,
-      y: ny * TILE,
+      x: nx * TILE + TILE / 2,
+      y: (ny + 1) * TILE,
       duration: STEP_MS,
       onComplete: () => {
         this.moving = false;
@@ -188,18 +195,16 @@ export class WorldScene extends BaseScene {
     const warp = this.map.warps.find((w) => w.x === x && w.y === y);
     if (warp) return this.warp(warp);
     const ch = this.map.grid[y][x];
-    if (TILES[ch].encounter && this.map.encounters?.length && Math.random() < this.encounterRate) this.startEncounter();
+    if (TILES[ch].encounter && Math.random() < this.encounterRate) this.startEncounter();
   }
 
-  /** Sorteia um monstro do mapa (por peso) e inicia a batalha. */
+  /** Sorteia um monstro do mapa e inicia a batalha. */
   startEncounter(): void {
-    const table = this.map.encounters ?? [];
-    if (!table.length || !this.st.party.some((m) => m.hp > 0)) return;
-    let roll = Math.random() * table.reduce((s, e) => s + e.weight, 0);
-    const pick = table.find((e) => (roll -= e.weight) < 0) ?? table[0];
-    const level = Phaser.Math.Between(pick.min, pick.max);
+    if (!this.st.party.some((m) => m.hp > 0)) return;
+    const roll = rollEncounter(this.map, getTrainer(this.st.trainerId).starter);
+    if (!roll) return;
     this.moving = true;
-    const data: BattleData = { kind: 'wild', enemies: [createMonster(pick.species, level)] };
+    const data: BattleData = { kind: 'wild', enemies: [createMonster(roll.species, roll.level)], rare: roll.rare };
     const cam = this.cameras.main;
     cam.flash(250, 255, 255, 255);
     this.time.delayedCall(260, () => this.goTo(SCENES.Battle, data));
@@ -220,7 +225,7 @@ export class WorldScene extends BaseScene {
     const ty = this.st.y + dy;
     const npc = this.npcAt(tx, ty);
     if (npc) {
-      npc.sprite.setTexture(overworldTexture(this, npc.def.id, npc.look, OPPOSITE[this.st.facing]));
+      this.applySprite(npc.sprite, npc.def.id, npc.look, OPPOSITE[this.st.facing]);
       void this.dialog.show(npc.def.dialog, npc.def.name);
       return;
     }

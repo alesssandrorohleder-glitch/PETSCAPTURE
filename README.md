@@ -32,31 +32,55 @@ public/assets imagens e sons (veja abaixo)
 Enquanto uma imagem não existir, o jogo desenha um placeholder colorido no lugar.
 Basta colocar o arquivo com o **nome exato** na pasta indicada e recarregar
 (no `npm run dev`, a página recarrega sozinha). Formatos aceitos: `.png`, `.webp`, `.jpg`.
-Use PNG com fundo transparente para personagens e monstros.
+
+**Regras gerais**
+- Personagens e monstros precisam de **fundo transparente** (PNG ou WebP). Fichas com várias vistas
+  (frente/lado/costas) precisam ser **recortadas em arquivos separados**, uma vista por arquivo, sem o texto.
+- **Qualquer proporção funciona**: o jogo encaixa a imagem no espaço sem distorcer.
+- Deixe pouca margem vazia em volta do desenho (recorte rente), senão ele aparece pequeno.
 
 | O quê | Arquivo | Tamanho recomendado |
 |---|---|---|
-| Retrato do treinador (tela de escolha) | `public/assets/trainers/<id>.png` | 320×360 (proporção 8:9) |
-| Treinador andando no mapa | `public/assets/overworld/<id>.png` | 32×32, olhando para baixo* |
-| Monstro (batalha e menus) | `public/assets/monsters/<espécie>.png` | 256×256 (quadrado) |
+| Retrato do treinador (tela de escolha) | `public/assets/trainers/<id>.png` | ~400 px de altura (busto ou corpo inteiro) |
+| Treinador no mapa — frente | `public/assets/overworld/<id>_down.png` | ~64×96 (corpo inteiro pequeno) |
+| Treinador no mapa — costas | `public/assets/overworld/<id>_up.png` | ~64×96 |
+| Treinador no mapa — lado | `public/assets/overworld/<id>_side.png` | ~64×96, **olhando para a DIREITA** (o jogo espelha para a esquerda) |
+| Monstro — frente (inimigo, menus) | `public/assets/monsters/<espécie>.png` | ~256×256 |
+| Monstro — costas (seu pet na batalha) | `public/assets/monsters/<espécie>_back.png` | ~256×256 (opcional: sem ela, a frente é espelhada) |
 | Tiles do mapa | `public/assets/tiles/<bioma>/<tile>.png` | 32×32 |
 | Prédios | `public/assets/buildings/<tipo>.png` | heal/shop 160×128, house 128×96 |
 | Placa | `public/assets/objects/sign.png` | 32×32 |
 
-\* O sprite do mapa é espelhado para olhar à esquerda; para frente/costas usa a mesma imagem.
+Se você tiver só uma imagem do personagem para o mapa, use `overworld/<id>.png` (será espelhada ao andar para a esquerda).
+
+**Exemplo com a ficha do Kael/Ignis:**
+```
+public/assets/trainers/kael.png          ← "Front view" do Kael
+public/assets/overworld/kael_down.png    ← "Front view" reduzida
+public/assets/overworld/kael_side.png    ← "Side view" (virada para a direita)
+public/assets/overworld/kael_up.png      ← "Back view" reduzida
+public/assets/monsters/ignis.png         ← "Front view" do Ignis
+public/assets/monsters/ignis_back.png    ← "Back view" do Ignis
+```
 
 **Ids dos treinadores:** `kael`, `marina`, `raijin`, `bruno`, `yuki`, `noctis`.
-NPCs usam o id deles (ex.: `overworld/anciao.png`, `overworld/menina.png`).
+NPCs usam o id deles (ex.: `overworld/anciao_down.png`, `overworld/menina_down.png`).
 
-**Ids das espécies:** `ignis`, `ignis_evo`, `aquaris`, `aquaris_evo`, `voltix`, `voltix_evo`,
-`terragon`, `terragon_evo`, `frostelle`, `frostelle_evo`, `umbrel`, `umbrel_evo`
-(a lista completa, com os selvagens, está em `src/data/monsters.ts`).
+**Ids das espécies:**
+- Pets: `ignis`, `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `ignis_evo`)
+- Floresta: `verdakor`, `larvilo`, `brotinho`
+- Praia: `conchilo`, `medulume`
+- Planalto: `zumbolt`, `voltabico`
+- Cânion: `pedrusco`, `escorpedra`
+- Picos: `pinguelo`, `nevasco`
+- Ruínas: `sombrelo`, `corvanoite`
 
-**Tiles:** biomas `vila`, `floresta` (mais nas próximas etapas); nomes `ground`, `path`,
-`tallgrass`, `tree`, `water`, `rock`, `flowers`, `fence`.
-Exemplo: `public/assets/tiles/floresta/tallgrass.png`.
+**Tiles:** biomas `vila`, `floresta`, `praia`, `planalto`, `canion`, `picos`, `ruinas`;
+nomes `ground`, `path`, `tallgrass`, `tree`, `water`, `rock`, `flowers`, `fence`.
+Exemplo: `public/assets/tiles/picos/tallgrass.png`. (Em cada bioma, `tree` é o obstáculo:
+palmeira na praia, pinheiro nos picos, coluna nas ruínas…)
 
-**Prédios:** `heal` (Centro de Cura), `shop` (Loja), `house` (casa).
+**Prédios:** `heal` (Centro/Posto de Cura), `shop` (Loja), `house` (casa).
 
 ## Como adicionar conteúdo
 

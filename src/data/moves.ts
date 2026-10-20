@@ -97,6 +97,8 @@ export const MOVES: Record<string, MoveData> = {
   picada: m({ id: 'picada', name: 'Picada', type: 'inseto', power: 30, accuracy: 100, description: 'Uma picada rápida.' }),
   fio_seda: m({ id: 'fio_seda', name: 'Fio de Seda', type: 'inseto', power: 0, accuracy: 95, description: 'Enrola o alvo em seda. Reduz a velocidade.', effects: [{ kind: 'stat', stat: 'spd', stages: -1, target: 'enemy' }] }),
 
+  absorver: m({ id: 'absorver', name: 'Absorver', type: 'grama', power: 35, accuracy: 100, description: 'Suga a energia do alvo e recupera vida.', effects: [{ kind: 'drain', fraction: 0.5 }] }),
+
   // ------------------------------------------------ Genérico
   investida: m({ id: 'investida', name: 'Investida', type: 'terra', power: 35, accuracy: 100, description: 'Avança contra o alvo.' }),
 };

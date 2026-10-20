@@ -60,9 +60,7 @@ export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string
         break;
       case 'tree':
         ground();
-        g.fillStyle(0x6b4226).fillRect(13, 20, 6, 10);
-        g.fillStyle(theme.tree).fillCircle(16, 14, 13);
-        g.fillStyle(shade(theme.tree, 1.25)).fillCircle(12, 10, 5);
+        drawTree(g, theme);
         break;
       case 'water':
         g.fillStyle(theme.water).fillRect(0, 0, TILE, TILE);
@@ -92,6 +90,42 @@ export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string
         g.fillStyle(0xff00ff).fillRect(0, 0, TILE, TILE);
     }
   });
+}
+
+/** "Árvore" (obstáculo) no estilo de cada bioma. */
+function drawTree(g: Phaser.GameObjects.Graphics, theme: BiomeTheme): void {
+  const c = theme.tree;
+  switch (theme.treeStyle) {
+    case 'palm':
+      g.fillStyle(0x8d6e4a).fillRect(14, 10, 4, 20);
+      g.fillStyle(c);
+      g.fillEllipse(9, 9, 16, 6).fillEllipse(23, 9, 16, 6).fillEllipse(12, 5, 12, 5).fillEllipse(20, 5, 12, 5);
+      g.fillStyle(0x6b4226).fillCircle(15, 11, 2).fillCircle(18, 11, 2);
+      break;
+    case 'pine':
+      g.fillStyle(0x5c4033).fillRect(14, 24, 4, 7);
+      g.fillStyle(c).fillTriangle(16, 2, 4, 26, 28, 26);
+      g.fillStyle(0xffffff, 0.85).fillTriangle(16, 2, 11, 11, 21, 11);
+      break;
+    case 'mesa':
+      g.fillStyle(c).fillRect(3, 6, 26, 24);
+      g.fillStyle(shade(c, 1.2)).fillRect(3, 6, 26, 5);
+      g.fillStyle(shade(c, 0.8)).fillRect(3, 18, 26, 2).fillRect(3, 24, 26, 2);
+      break;
+    case 'pillar':
+      g.fillStyle(shade(c, 0.8)).fillRect(6, 26, 20, 5);
+      g.fillStyle(c).fillRect(9, 6, 14, 21);
+      g.fillStyle(shade(c, 1.25)).fillRect(6, 3, 20, 5).fillRect(11, 8, 3, 18);
+      g.fillStyle(0xc77dff, 0.6).fillCircle(16, 15, 2);
+      break;
+    case 'spire':
+      g.fillStyle(c).fillTriangle(16, 1, 6, 30, 26, 30);
+      break;
+    default:
+      g.fillStyle(0x6b4226).fillRect(13, 20, 6, 10);
+      g.fillStyle(c).fillCircle(16, 14, 13);
+      g.fillStyle(shade(c, 1.25)).fillCircle(12, 10, 5);
+  }
 }
 
 // ---------------------------------------------------------------- prédios
@@ -137,8 +171,34 @@ export function trainerPortrait(scene: Phaser.Scene, t: Pick<TrainerData, 'id' |
   });
 }
 
+/** Encaixa a imagem numa caixa w×h sem distorcer (qualquer proporção de arquivo funciona). */
+export function fitInto<T extends Phaser.GameObjects.Image>(img: T, w: number, h: number): T {
+  const f = img.frame;
+  img.setScale(Math.min(w / f.realWidth, h / f.realHeight));
+  return img;
+}
+
+export interface SpriteRef {
+  key: string;
+  flipX: boolean;
+}
+
+/**
+ * Sprite do mapa. Ordem de procura em public/assets/overworld/:
+ *   <id>_down.png / <id>_up.png / <id>_side.png (lado olhando para a DIREITA)
+ *   <id>.png (uma imagem só, espelhada para a esquerda)
+ *   senão, placeholder.
+ */
+export function overworldSprite(scene: Phaser.Scene, id: string, look: TrainerData['look'], facing: Facing): SpriteRef {
+  const has = (k: string) => scene.textures.exists(`overworld/${k}`);
+  if (has(`${id}_${facing}`)) return { key: `overworld/${id}_${facing}`, flipX: false };
+  if ((facing === 'left' || facing === 'right') && has(`${id}_side`)) return { key: `overworld/${id}_side`, flipX: facing === 'left' };
+  if (has(`${id}_down`)) return { key: `overworld/${id}_down`, flipX: facing === 'left' };
+  if (has(id)) return { key: `overworld/${id}`, flipX: facing === 'left' };
+  return { key: overworldTexture(scene, id, look, facing), flipX: false };
+}
+
 export function overworldTexture(scene: Phaser.Scene, id: string, look: TrainerData['look'], facing: Facing): string {
-  if (scene.textures.exists(`overworld/${id}`)) return `overworld/${id}`;
   return ensure(scene, `overworld/${id}-${facing}`, TILE, TILE, (g) => {
     const { hair, outfit, accent, skin } = look;
     g.fillStyle(0x000000, 0.25).fillEllipse(16, 29, 20, 6);
@@ -189,6 +249,12 @@ function shapePath(g: Phaser.GameObjects.Graphics, shape: PlaceholderShape, cx: 
 }
 
 export const MONSTER_TEX_SIZE = 128;
+
+/** Monstro em batalha. Do lado do jogador usa <id>_back.png se existir; senão espelha a frente. */
+export function monsterSprite(scene: Phaser.Scene, speciesId: string, back: boolean): SpriteRef {
+  if (back && scene.textures.exists(`monsters/${speciesId}_back`)) return { key: `monsters/${speciesId}_back`, flipX: false };
+  return { key: monsterTexture(scene, speciesId), flipX: back };
+}
 
 export function monsterTexture(scene: Phaser.Scene, speciesId: string): string {
   const sp = getSpecies(speciesId);

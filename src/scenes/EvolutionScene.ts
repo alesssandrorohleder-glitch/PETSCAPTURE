@@ -5,7 +5,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
 import { displayName, evolutionTarget, evolve } from '../systems/Monster';
-import { monsterTexture } from '../systems/Placeholders';
+import { fitInto, monsterTexture } from '../systems/Placeholders';
 import { makePanel, makeText } from '../ui/text';
 import { BaseScene, tweenP, wait } from './BaseScene';
 
@@ -65,20 +65,20 @@ export class EvolutionScene extends BaseScene {
       const oldName = displayName(mon);
       const oldKey = monsterTexture(this, mon.species);
       const newKey = monsterTexture(this, into);
-      const sprite = this.add.image(this.cx, 210, oldKey).setDisplaySize(200, 200);
+      const sprite = fitInto(this.add.image(this.cx, 210, oldKey), 200, 200);
       msg.setText(`O quê? ${oldName} está evoluindo!`);
       await wait(this, 1200);
 
       // pisca cada vez mais rápido entre as duas formas
       let delay = 420;
       for (let i = 0; i < 14; i++) {
-        sprite.setTexture(i % 2 ? oldKey : newKey).setDisplaySize(200, 200).setTintFill(0xffffff);
+        fitInto(sprite.setTexture(i % 2 ? oldKey : newKey), 200, 200).setTintFill(0xffffff);
         await wait(this, delay);
         delay = Math.max(70, delay * 0.8);
       }
       this.cameras.main.flash(600, 255, 255, 255);
       evolve(mon);
-      sprite.setTexture(newKey).clearTint().setDisplaySize(220, 220);
+      fitInto(sprite.setTexture(newKey).clearTint(), 220, 220);
       for (let i = 0; i < 30; i++) {
         const p = this.add.circle(this.cx, 210, Phaser.Math.Between(3, 7), 0xffd166);
         const a = Math.random() * Math.PI * 2;

@@ -10,7 +10,7 @@ import { BattleEngine, STATUS_INFO, type BattleEvent, type BattleKind, type Play
 import { Controls } from '../systems/Controls';
 import { GameState } from '../systems/GameState';
 import { displayName, evolutionTarget, maxHp, MAX_MOVES, xpProgress, type MonsterInstance } from '../systems/Monster';
-import { monsterTexture } from '../systems/Placeholders';
+import { fitInto, monsterSprite } from '../systems/Placeholders';
 import { HealthBar } from '../ui/HealthBar';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { makePanel, makeText } from '../ui/text';
@@ -22,6 +22,8 @@ export interface BattleData {
   enemyName?: string;
   /** recompensa extra em moedas (treinadores) */
   prize?: number;
+  /** pet inicial raro (3%) */
+  rare?: boolean;
   /** cena e dados para depois da batalha (padrão: World) */
   next?: { scene: string; data?: object };
 }
@@ -83,7 +85,7 @@ export class BattleScene extends BaseScene {
   private drawBackground(mapId: string): void {
     const theme = getMap(mapId).theme;
     const g = this.add.graphics();
-    const sky = Phaser.Display.Color.IntegerToColor(theme.water).darken(10).color;
+    const sky = theme.sky;
     g.fillGradientStyle(sky, sky, theme.ground, theme.ground, 1);
     g.fillRect(0, 0, GAME_WIDTH, MSG_Y);
     g.fillStyle(theme.tallgrass, 0.9).fillEllipse(700, 222, 280, 60);
@@ -92,11 +94,10 @@ export class BattleScene extends BaseScene {
   }
 
   private buildSide(side: Side): SideView {
-    const mon = this.engine.active(side).mon;
     const isEnemy = side === 'enemy';
     const size = isEnemy ? 150 : 190;
     const home = isEnemy ? { x: 700, y: 156 } : { x: 240, y: 300 };
-    const sprite = this.add.image(home.x, home.y, monsterTexture(this, mon.species)).setDisplaySize(size, size).setFlipX(!isEnemy);
+    const sprite = this.add.image(home.x, home.y, '__DEFAULT');
 
     const px = isEnemy ? 30 : 590;
     const py = isEnemy ? 26 : 278;
@@ -122,7 +123,8 @@ export class BattleScene extends BaseScene {
     const mon = this.engine.active(side).mon;
     v.name.setText(displayName(mon));
     v.level.setText(`Nv ${mon.level}`);
-    v.sprite.setTexture(monsterTexture(this, mon.species)).setDisplaySize(v.size, v.size);
+    const ref = monsterSprite(this, mon.species, side === 'player');
+    fitInto(v.sprite.setTexture(ref.key).setFlipX(ref.flipX), v.size, v.size);
     v.types.removeAll(true);
     getSpecies(mon.species).types.forEach((t, i) => {
       const el = ELEMENTS[t];
@@ -170,7 +172,10 @@ export class BattleScene extends BaseScene {
     void tweenP(this, { targets: v.enemy.sprite, x: v.enemy.home.x, duration: 500, ease: 'Cubic.out' });
     await tweenP(this, { targets: v.player.sprite, x: v.player.home.x, duration: 500, ease: 'Cubic.out' });
     const e = this.engine.active('enemy').mon;
-    if (this.data_.kind === 'wild') await this.say(`Um ${displayName(e)} selvagem apareceu!`);
+    if (this.data_.kind === 'wild' && this.data_.rare) {
+      this.cameras.main.flash(500, 255, 215, 0);
+      await this.say(`Incrível! Um ${displayName(e)} selvagem RARO apareceu!`, 1800);
+    } else if (this.data_.kind === 'wild') await this.say(`Um ${displayName(e)} selvagem apareceu!`);
     else await this.say(`${this.data_.enemyName} quer batalhar! Enviou ${displayName(e)}!`);
     await this.say(`Vai, ${displayName(this.engine.active('player').mon)}!`, 900);
     this.showMainMenu();
@@ -419,8 +424,9 @@ export class BattleScene extends BaseScene {
   private async animateSend(side: Side): Promise<void> {
     const v = this.views[side];
     this.refresh(side);
-    v.sprite.setPosition(v.home.x, v.home.y).setAlpha(0).setScale(v.sprite.scaleX * 0.2, v.sprite.scaleY * 0.2);
-    await tweenP(this, { targets: v.sprite, alpha: 1, displayWidth: v.size, displayHeight: v.size, duration: 350, ease: 'Back.out' });
+    const full = v.sprite.scale;
+    v.sprite.setPosition(v.home.x, v.home.y).setAlpha(0).setScale(full * 0.2);
+    await tweenP(this, { targets: v.sprite, alpha: 1, scale: full, duration: 350, ease: 'Back.out' });
   }
 
   // ------------------------------------------------------------------ fim
