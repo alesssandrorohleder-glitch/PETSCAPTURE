@@ -250,7 +250,7 @@ const FLORESTA: MapDef = {
   encounters: [
     { species: 'larvilo', min: 2, max: 4, weight: 55 },
     { species: 'brotinho', min: 2, max: 3, weight: 20 },
-    { species: 'verdakor', min: 2, max: 4, weight: 25 },
+    { species: 'verdaki', min: 2, max: 4, weight: 25 },
   ],
 };
 

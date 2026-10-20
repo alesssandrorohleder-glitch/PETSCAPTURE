@@ -7,6 +7,13 @@ import { effectiveness } from '../src/data/typeChart';
 import { BattleEngine } from '../src/systems/BattleEngine';
 import { createMonster, movesForLevel } from '../src/systems/Monster';
 
+/** Forma da espécie no nível (segue as evoluções: verdaki Nv 14 -> verdakor). */
+function formAt(species: string, level: number): string {
+  let sp = species;
+  for (let evo = getSpecies(sp).evolution; evo && level >= evo.level; evo = getSpecies(sp).evolution) sp = evo.into;
+  return sp;
+}
+
 /** Jogador "razoável": escolhe o golpe de maior dano esperado. */
 function bestMove(b: BattleEngine): string {
   const me = b.active('player').mon;
@@ -39,7 +46,7 @@ function teamWinRate(team: [string, number][], mapId: string, n = 300): number {
     let r = Math.random() * total;
     const e = table.find((x) => (r -= x.weight) < 0) ?? table[0];
     const wild = createMonster(e.species, e.min + Math.floor(Math.random() * (e.max - e.min + 1)));
-    const party = team.map(([sp, lv]) => createMonster(sp, lv));
+    const party = team.map(([sp, lv]) => createMonster(formAt(sp, lv), lv));
     const lead = bestLead(party, wild);
     [party[0], party[lead]] = [party[lead], party[0]];
     const b = new BattleEngine({ party, enemies: [wild], kind: 'wild' });
@@ -83,11 +90,11 @@ describe('equilíbrio da Floresta (pet inicial Nv5, vida cheia)', () => {
 
 /** Rota: bioma, nível esperado do pet inicial e monstros capturados antes (1 por bioma anterior). */
 const ROUTE: [string, number, string[]][] = [
-  ['praia', 9, ['verdakor']],
-  ['planalto', 12, ['verdakor', 'conchilo']],
-  ['canion', 16, ['verdakor', 'conchilo', 'zumbolt']],
-  ['picos', 20, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco']],
-  ['ruinas', 26, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco', 'nevasco']],
+  ['praia', 9, ['verdaki']],
+  ['planalto', 12, ['verdaki', 'conchilo']],
+  ['canion', 16, ['verdaki', 'conchilo', 'zumbolt']],
+  ['picos', 20, ['verdaki', 'conchilo', 'zumbolt', 'pedrusco']],
+  ['ruinas', 26, ['verdaki', 'conchilo', 'zumbolt', 'pedrusco', 'nevasco']],
 ];
 
 describe('equilíbrio dos biomas (equipe realista)', () => {
@@ -111,7 +118,7 @@ import { FRIEND_BATTLES, RIVAL } from '../src/data/story';
 function trainerWinRate(team: [string, number][], enemy: [string, number][], n = 200): number {
   let wins = 0;
   for (let i = 0; i < n; i++) {
-    const party = team.map(([sp, lv]) => createMonster(sp, lv));
+    const party = team.map(([sp, lv]) => createMonster(formAt(sp, lv), lv));
     const foes = enemy.map(([sp, lv]) => createMonster(sp, lv));
     const lead = bestLead(party, foes[0]);
     [party[0], party[lead]] = [party[lead], party[0]];
@@ -134,12 +141,12 @@ const STORY: [string, number, string[], [string, number][]][] = [
   ['Noctis 1 (saída da vila)', 5, [], RIVAL.noctis1.team],
   // desafio opcional: dá para recusar e voltar depois, com o pet um pouco mais forte
   ['Kael (floresta)', 8, [], FRIEND_BATTLES.kael.team],
-  ['Marina (praia)', 10, ['verdakor'], FRIEND_BATTLES.marina.team],
-  ['Raijin (planalto)', 13, ['verdakor', 'conchilo'], FRIEND_BATTLES.raijin.team],
-  ['Bruno (cânion)', 17, ['verdakor', 'conchilo', 'zumbolt'], FRIEND_BATTLES.bruno.team],
-  ['Noctis 2 (cânion)', 17, ['verdakor', 'conchilo', 'zumbolt'], RIVAL.noctis2.team],
-  ['Yuki (picos)', 21, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco'], FRIEND_BATTLES.yuki.team],
-  ['Noctis 3 (final)', 28, ['verdakor', 'conchilo', 'zumbolt', 'pedrusco', 'nevasco'], RIVAL.noctis3.team],
+  ['Marina (praia)', 10, ['verdaki'], FRIEND_BATTLES.marina.team],
+  ['Raijin (planalto)', 13, ['verdaki', 'conchilo'], FRIEND_BATTLES.raijin.team],
+  ['Bruno (cânion)', 17, ['verdaki', 'conchilo', 'zumbolt'], FRIEND_BATTLES.bruno.team],
+  ['Noctis 2 (cânion)', 17, ['verdaki', 'conchilo', 'zumbolt'], RIVAL.noctis2.team],
+  ['Yuki (picos)', 21, ['verdaki', 'conchilo', 'zumbolt', 'pedrusco'], FRIEND_BATTLES.yuki.team],
+  ['Noctis 3 (final)', 28, ['verdaki', 'conchilo', 'zumbolt', 'pedrusco', 'nevasco'], RIVAL.noctis3.team],
 ];
 
 describe('equilíbrio da história', () => {

@@ -3,6 +3,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { Settings } from '../systems/Settings';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { BaseScene } from './BaseScene';
+import { showConsentBanner } from '../ui/ConsentBanner';
 
 export class OptionsScene extends BaseScene {
   constructor() {
@@ -21,8 +22,10 @@ export class OptionsScene extends BaseScene {
           menu.setItems(items());
         },
       },
+      { label: 'Privacidade e cookies', onSelect: () => showConsentBanner(true) },
+      { label: 'Política de Privacidade', onSelect: () => window.open('./privacy.html', '_blank', 'noopener') },
       { label: 'Voltar', onSelect: back },
     ];
-    const menu = new MenuList(this, items(), { x: this.cx - 150, y: 200, itemWidth: 300, onCancel: back });
+    const menu = new MenuList(this, items(), { x: this.cx - 170, y: 160, itemWidth: 340, onCancel: back });
   }
 }

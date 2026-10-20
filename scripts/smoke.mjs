@@ -8,7 +8,7 @@ import { mkdirSync } from 'node:fs';
 const PORT = 4173;
 const mobile = process.argv.includes('--mobile');
 // o Chromium de teste não tem GPU: renderiza em 960×540 (?scale=1) para ser rápido; --hd usa a escala real
-const query = process.argv.includes('--hd') ? '' : '?scale=1';
+const query = (process.argv.includes('--hd') ? '?' : '?scale=1&') + 'ads=off';
 const exe = process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 mkdirSync('screenshots', { recursive: true });
 
@@ -58,7 +58,7 @@ try {
   await page.goto(`http://localhost:${PORT}/${query}`);
   await page.waitForFunction(() => window.__game?.scene.isActive('Menu'), null, { timeout: 15000 });
   await wait(400);
-  await steps({ page, press, wait, shot, scene, expectScene, mobile });
+  await steps({ page, press, wait, shot, scene, expectScene, mobile, port: PORT });
 } catch (e) {
   failed = true;
   console.error('✗ FALHOU:', e.message);

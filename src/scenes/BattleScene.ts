@@ -13,6 +13,8 @@ import { displayName, evolutionTarget, maxHp, MAX_MOVES, xpProgress, type Monste
 import { capsuleTexture, fitInto, monsterSprite, trainerPortrait } from '../systems/Placeholders';
 import type { TrainerData } from '../data/trainers';
 import { HealthBar } from '../ui/HealthBar';
+import { choose } from '../ui/Overlay';
+import { AdManager } from '../systems/AdManager';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { makePanel, makeText } from '../ui/text';
 import { BaseScene, tweenP, wait } from './BaseScene';
@@ -321,7 +323,7 @@ export class BattleScene extends BaseScene {
     await this.play(this.engine.sendReplacement(index));
   }
 
-  private async play(events: BattleEvent[]): Promise<void> {
+  private async play(events: BattleEvent[], menuAfter = true): Promise<void> {
     for (const e of events) {
       switch (e.t) {
         case 'msg':
@@ -370,7 +372,7 @@ export class BattleScene extends BaseScene {
           return;
       }
     }
-    this.showMainMenu();
+    if (menuAfter) this.showMainMenu();
   }
 
   // ------------------------------------------------------------------ animações
@@ -499,23 +501,60 @@ export class BattleScene extends BaseScene {
   }
 
   // ------------------------------------------------------------------ fim
+  /** Pergunta com opções (a primeira é sempre seguir sem anúncio). Resolve com o índice. */
+  private async offer(question: string, options: string[]): Promise<number> {
+    this.msg.setText('');
+    return choose(this, question, options.map((label) => ({ label })), 600);
+  }
+
   private async endBattle(): Promise<void> {
     const st = GameState.get();
     const outcome = this.engine.outcome;
-    this.engine.cleanup();
-    if (outcome === 'win') {
-      const prize = (this.data_.prize ?? 0) + this.data_.enemies.reduce((s, m) => s + m.level * 8, 0);
-      st.money += prize;
-      await this.say(`Você ganhou ${prize} moedas!`, 1600);
-      let next = this.data_.next ?? { scene: SCENES.World };
-      if (this.data_.kind === 'trainer' && !this.data_.next) {
-        next = { scene: SCENES.GameOver, data: { victory: true, message: `Você venceu ${this.data_.enemyName}! +${prize} moedas` } };
+
+    // Anúncio recompensado: reviver o pet depois de perder (opcional, 1x por batalha)
+    if (outcome === 'lose' && AdManager.enabled && !this.engine.revived) {
+      const mon = this.engine.active('player').mon;
+      const i = await this.offer(`Seus pets desmaiaram. Quer assistir a um anúncio para reviver ${displayName(mon)} com metade da vida e continuar a batalha?`, [
+        'Não, voltar ao Centro de Cura',
+        '▶ Assistir anúncio e reviver',
+      ]);
+      if (i === 1) {
+        const r = await AdManager.rewarded('reviver-pet');
+        if (r === 'viewed') return this.play(this.engine.reviveAfterLoss());
+        await this.say(r === 'dismissed' ? 'O anúncio foi fechado antes do fim.' : 'Nenhum anúncio disponível agora.');
       }
-      const evolving = st.party.filter((m) => m.hp > 0 && evolutionTarget(m)).map((m) => m.uid);
-      if (evolving.length) this.goTo(SCENES.Evolution, { uids: evolving, next });
-      else this.goTo(next.scene, next.data);
-    } else if (outcome === 'capture') {
-      const next = this.data_.next ?? { scene: SCENES.World };
+    }
+
+    this.engine.cleanup();
+    let watchedReward = false;
+    if (outcome === 'win' || outcome === 'capture') {
+      if (outcome === 'win') {
+        const prize = (this.data_.prize ?? 0) + this.data_.enemies.reduce((sum, m) => sum + m.level * 8, 0);
+        st.money += prize;
+        await this.say(`Você ganhou ${prize} moedas!`, 1600);
+      }
+      // Anúncio recompensado: dobrar o XP da batalha (opcional)
+      const xp = [...this.engine.xpGained.values()].reduce((a, b) => a + b, 0);
+      if (xp > 0 && AdManager.enabled) {
+        const i = await this.offer(`Quer dobrar o XP desta batalha (+${xp} XP) assistindo a um anúncio?`, ['Não, continuar', '▶ Assistir anúncio e dobrar XP']);
+        if (i === 1) {
+          const r = await AdManager.rewarded('dobrar-xp');
+          if (r === 'viewed') {
+            watchedReward = true;
+            await this.play(this.engine.doubleXp(), false);
+          } else await this.say(r === 'dismissed' ? 'O anúncio foi fechado antes do fim.' : 'Nenhum anúncio disponível agora.');
+        }
+      }
+    }
+
+    // Intersticial entre batalhas (no máximo 1 a cada 3 min; pulado se acabou de ver um recompensado)
+    if (!watchedReward) await AdManager.interstitial('apos-batalha');
+
+    if (outcome === 'win' || outcome === 'capture') {
+      let next = this.data_.next ?? { scene: SCENES.World };
+      if (outcome === 'win' && this.data_.kind === 'trainer' && !this.data_.next) {
+        next = { scene: SCENES.GameOver, data: { victory: true, message: `Você venceu ${this.data_.enemyName}!` } };
+      }
       const evolving = st.party.filter((m) => m.hp > 0 && evolutionTarget(m)).map((m) => m.uid);
       if (evolving.length) this.goTo(SCENES.Evolution, { uids: evolving, next });
       else this.goTo(next.scene, next.data);

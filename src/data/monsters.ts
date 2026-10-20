@@ -115,12 +115,20 @@ export const SPECIES: Record<string, SpeciesData> = {
   }),
 
   // ------------------------------------------------ Selvagens
+  verdaki: s({
+    id: 'verdaki', name: 'Verdaki', types: ['grama', 'inseto'],
+    description: 'Bebê fofo e gorducho, verde-claro, com uma carapaça de folha brilhante nas costas e duas antenas de broto em espiral.',
+    base: { hp: 46, atk: 44, def: 48, spd: 40 },
+    learnset: ls(['folha_navalha', 'picada_venenosa', 'chicote_vinha', 'enxame', 'esporos_sono', 'floresta_devoradora'], [1, 3, 6, 9, 12, 18]),
+    evolution: { level: 14, into: 'verdakor' },
+    catchRate: 170, xpYield: 52, shape: 'blob',
+  }),
   verdakor: s({
     id: 'verdakor', name: 'Verdakor', types: ['grama', 'inseto'],
-    description: 'Híbrido de louva-a-deus e besouro, carapaça de folhas e braços de vinha com espinhos.',
-    base: { hp: 50, atk: 48, def: 50, spd: 46 },
+    description: 'Mariposa de galhos e casca com brotos na cabeça como chifres, olhos âmbar e quatro asas de folha de outono que brilham contra o sol.',
+    base: { hp: 72, atk: 82, def: 66, spd: 88 },
     learnset: ls(['folha_navalha', 'picada_venenosa', 'chicote_vinha', 'enxame', 'esporos_sono', 'floresta_devoradora'], [1, 3, 6, 9, 12, 18]),
-    catchRate: 150, xpYield: 55, shape: 'diamond',
+    catchRate: 60, xpYield: 150, shape: 'star',
   }),
   larvilo: s({
     id: 'larvilo', name: 'Larvilo', types: ['inseto'],

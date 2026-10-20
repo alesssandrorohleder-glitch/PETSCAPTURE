@@ -1,4 +1,4 @@
-export default async function ({ page, press, wait, shot, expectScene, mobile }) {
+export default async function ({ page, press, wait, shot, expectScene, mobile, port }) {
   const st = () => page.evaluate(() => { const s = window.__state.get(); return { map: s.mapId, x: s.x, y: s.y, facing: s.facing, trainer: s.trainerId }; });
   const world = (expr) => page.evaluate(`(() => { const w = window.__game.scene.getScene('World'); return ${expr}; })()`);
   /** anda n passos numa direção (espera cada passo terminar) */
@@ -353,6 +353,53 @@ export default async function ({ page, press, wait, shot, expectScene, mobile })
   const loaded = await st();
   const fl = await flags();
   assert(loaded.map === saved.map && loaded.x === saved.x && loaded.y === saved.y && fl.noctis3 === true, `progresso restaurado após recarregar (${JSON.stringify(loaded)})`);
+  // ---------------- Etapa 9: anúncios (modo simulado)
+  await page.evaluate(() => { try { localStorage.removeItem('elementais.consent'); } catch {} });
+  await page.goto(`http://localhost:${port}/?scale=1&ads=sim`);
+  await page.waitForFunction(() => window.__game?.scene.isActive('Menu'), null, { timeout: 15000 });
+  await wait(800);
+  assert(await page.locator('.consent').isVisible(), 'aviso de cookies aparece na primeira visita');
+  await shot('50-consent');
+  await page.click('.consent button[data-c="accepted"]');
+  assert(await page.evaluate(() => localStorage.getItem('elementais.consent')) === '"accepted"', 'consentimento salvo');
+  await press('Enter'); // Continuar
+  await expectScene('World');
+  await wait(1200);
+  // +50 moedas pelo menu de pausa (assiste até o fim)
+  const coins0 = await page.evaluate(() => window.__state.get().money);
+  await page.evaluate(() => window.__game.scene.getScene('World').toggleMenu());
+  await wait(400);
+  await page.evaluate(() => { const w = window.__game.scene.getScene('World'); const list = w.menu.list.find((o) => o.select); list.select(3); });
+  await press('Enter', 800);
+  assert(await page.locator('.sim-ad').isVisible(), 'anúncio recompensado simulado aparece');
+  await shot('51-reward-ad');
+  await page.waitForSelector('.sim-ad__done:not([disabled])', { timeout: 9000 });
+  await page.click('.sim-ad__done');
+  await wait(800);
+  const coins1 = await page.evaluate(() => window.__state.get().money);
+  assert(coins1 === coins0 + 50, `ganhou 50 moedas (${coins0} -> ${coins1})`);
+  for (let i = 0; i < 4 && (await world('w.dialog.open')); i++) await press('Enter', 400);
+  // fechar antes do fim não dá recompensa
+  const r = await page.evaluate(() => { const p = window.__ads.rewarded('teste'); setTimeout(() => document.querySelector('.sim-ad__skip').click(), 300); return p; });
+  assert(r === 'dismissed', 'fechar o anúncio antes do fim não dá recompensa');
+  // intersticial depois de batalha (forçando o tempo de sessão)
+  await page.evaluate(() => { window.__ads.sessionStart = 0; const m = window.__create('larvilo', 2); m.hp = 1; window.__game.scene.getScene('World').scene.start('Battle', { kind: 'wild', enemies: [m] }); });
+  await expectScene('Battle');
+  let g = 0, sawAd = false;
+  while (g++ < 80) {
+    if (await page.locator('.sim-ad').isVisible().catch(() => false)) { sawAd = true; break; }
+    if (await active('World')) break;
+    await press('Enter', 350);
+  }
+  assert(sawAd, 'intersticial aparece entre batalhas');
+  await shot('52-interstitial');
+  await page.waitForSelector('.sim-ad__done:not([disabled])', { timeout: 9000 });
+  await page.click('.sim-ad__done');
+  await expectScene('World');
+  assert(!(await page.evaluate(() => window.__ads.canShowInterstitial())), 'não mostra outro intersticial antes de 3 minutos');
+  // anúncio bloqueado/indisponível não trava
+  const blocked = await page.evaluate(async () => { window.__ads.mode = 'live'; const r = await window.__ads.rewarded('x'); window.__ads.mode = 'simulated'; return r; });
+  assert(blocked === 'unavailable', 'sem script do Google, o recompensado responde "indisponível" e o jogo segue');
 }
 
 /** Teste do direcional por toque (só no modo --mobile). */

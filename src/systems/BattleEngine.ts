@@ -245,6 +245,37 @@ export class BattleEngine {
     return !!m && m.hp > 0 && index !== this.pIndex;
   }
 
+  /**
+   * Revive o pet em campo com metade da vida depois de uma derrota (anúncio recompensado).
+   * Só funciona logo após perder, e uma vez por batalha.
+   */
+  revived = false;
+  reviveAfterLoss(): BattleEvent[] {
+    if (this.outcome !== 'lose' || this.revived) return [];
+    this.revived = true;
+    const mon = this.party[this.pIndex];
+    mon.hp = Math.ceil(maxHp(mon) / 2);
+    mon.status = null;
+    this.battlers.player = newBattler(mon);
+    this.over = false;
+    this.outcome = undefined;
+    return [
+      { t: 'send', side: 'player', index: this.pIndex },
+      { t: 'hp', side: 'player', hp: mon.hp, max: maxHp(mon) },
+      { t: 'msg', text: `${displayName(mon)} voltou à batalha!` },
+    ];
+  }
+
+  /** Dobra o XP desta batalha (anúncio recompensado). */
+  doubleXp(): BattleEvent[] {
+    const ev: BattleEvent[] = [];
+    for (const [uid, amount] of [...this.xpGained]) {
+      const mon = this.party.find((m) => m.uid === uid) ?? this.box.find((m) => m.uid === uid);
+      if (mon && amount > 0) this.grantXp(mon, amount, ev);
+    }
+    return ev;
+  }
+
   /** Limpa status temporários ao fim da batalha (só o veneno continua). */
   cleanup(): void {
     for (const m of this.party) if (m.status && m.status !== 'envenenado') m.status = null;

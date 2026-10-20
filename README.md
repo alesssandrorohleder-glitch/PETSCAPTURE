@@ -78,7 +78,7 @@ Treinadores andarilhos (1 por mapa, em `src/data/wanderers.ts`): `w_pedrinho`, `
 
 **Ids das espécies:**
 - Pets: `ignis`, `aquaris`, `voltix`, `terragon`, `frostelle`, `umbrel` e as formas evoluídas com `_evo` (ex.: `ignis_evo`)
-- Floresta: `verdakor`, `larvilo`, `brotinho`
+- Floresta: `verdaki` (evolui no Nv 14 para `verdakor`), `larvilo`, `brotinho`
 - Praia: `conchilo`, `medulume`
 - Planalto: `zumbolt`, `voltabico`
 - Cânion: `pedrusco`, `escorpedra`
@@ -92,6 +92,36 @@ a árvore em si (palmeira na praia, pinheiro nos picos, coluna nas ruínas…) �
 mais alta que um tile para o personagem poder passar "atrás" da copa.
 
 **Prédios:** `heal` (Centro/Posto de Cura), `shop` (Loja), `house` (casa).
+
+**Dica para gerar as artes com IA:** as ilustrações com cenário (16:9) são ótimas para capa e divulgação,
+mas no jogo cada monstro precisa aparecer **sozinho, de corpo inteiro e com fundo transparente**.
+Gere também uma versão com algo como *"full body, centered, isolated on plain white background, no scenery"*
+e remova o fundo (ou peça para mim). Para o lado do jogador na batalha, gere a vista de costas (`_back`).
+
+## Anúncios (Google H5 Games Ads)
+
+Tudo fica em **`src/ads.config.ts`**, o único arquivo que você precisa editar:
+
+1. Crie/acesse sua conta no AdSense e **solicite o acesso a jogos H5** (AdSense para Jogos / H5 Games Ads).
+2. Em `src/ads.config.ts`, troque `publisherId: 'ca-pub-0000000000000000'` pelo seu ID.
+3. Em `public/ads.txt`, troque `pub-0000000000000000` pelo mesmo número (sem o `ca-`).
+4. Publique o site. Até o AdSense aprovar o domínio, os anúncios podem não aparecer — o jogo segue normalmente.
+
+Modos (mude pela URL para testar): `?ads=sim` (anúncio simulado, padrão enquanto o ID for o de exemplo),
+`?ads=test` (anúncios de teste do Google, atributo `data-adbreak-test="on"` — confira na documentação da
+Ad Placement API se o atributo continua o mesmo), `?ads=live`, `?ads=off`.
+
+Onde aparecem:
+- **Intersticial:** só entre batalhas, no máximo 1 a cada 3 minutos e nunca nos 3 primeiros minutos de jogo.
+- **Recompensados (sempre opcionais):** reviver o pet depois de perder (1x por batalha), +50 moedas
+  (menu de pausa e loja) e dobrar o XP depois de vencer.
+- Se o anúncio for bloqueado ou não carregar, o jogo continua sem travar.
+
+**Privacidade:** na primeira visita aparece o aviso de cookies (Aceitar / Recusar — recusar = anúncios não
+personalizados). A escolha pode ser mudada em **Opções → Privacidade e cookies**. Edite `public/privacy.html`
+com seu nome e e-mail. Para visitantes do Espaço Econômico Europeu/Reino Unido, o Google exige uma plataforma de
+consentimento certificada: ative a **mensagem de GDPR em AdSense → Privacidade e mensagens** (ela aparece
+automaticamente junto com os anúncios).
 
 ## Como adicionar conteúdo
 

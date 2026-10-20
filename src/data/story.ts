@@ -47,7 +47,7 @@ export const RIVAL: Record<'noctis1' | 'noctis2' | 'noctis3', TrainerBattleDef> 
   noctis3: {
     flag: 'noctis3',
     trainer: 'noctis',
-    team: [['umbrel_evo', 29], ['corvanoite', 26], ['sombrelo', 26], ['nevasco', 25]],
+    team: [['umbrel_evo', 30], ['corvanoite', 27], ['sombrelo', 27], ['nevasco', 26]],
     prize: 5000,
     final: true,
     intro: [

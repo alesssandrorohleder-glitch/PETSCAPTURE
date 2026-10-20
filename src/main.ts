@@ -15,6 +15,9 @@ import { EvolutionScene } from './scenes/EvolutionScene';
 import { GameState } from './systems/GameState';
 import { createMonster } from './systems/Monster';
 import { SaveManager } from './systems/SaveManager';
+import { AdManager } from './systems/AdManager';
+import { Settings } from './systems/Settings';
+import { showConsentBanner } from './ui/ConsentBanner';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -52,3 +55,12 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 setInterval(() => {
   if (GameState.has() && document.visibilityState === 'visible' && game.scene.isActive('World')) GameState.get().playSeconds++;
 }, 1000);
+
+// Anúncios: pausa som e controles enquanto um anúncio aparece; aviso de cookies na 1ª visita.
+Object.assign(window, { __ads: AdManager }); // para testes
+AdManager.init((paused) => {
+  game.sound.mute = paused || !Settings.get().soundOn;
+  game.input.enabled = !paused;
+  if (game.input.keyboard) game.input.keyboard.enabled = !paused;
+});
+showConsentBanner();

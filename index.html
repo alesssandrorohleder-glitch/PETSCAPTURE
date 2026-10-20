@@ -12,6 +12,23 @@
       html, body { margin: 0; height: 100%; background: #14112b; overflow: hidden; touch-action: none; }
       #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
       canvas { display: block; }
+      /* aviso de cookies */
+      .consent { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(720px, calc(100% - 24px)); box-sizing: border-box;
+        background: #231d45; color: #f4f1ff; border: 2px solid #8c7cf0; border-radius: 12px; padding: 14px 16px; font: 14px/1.45 "Trebuchet MS", "Segoe UI", sans-serif; z-index: 20; box-shadow: 0 8px 30px #0008; }
+      .consent p { margin: 0 0 10px; }
+      .consent a { color: #ffd166; }
+      .consent__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+      .consent button, .sim-ad button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 2px solid #8c7cf0; background: #332a63; color: #f4f1ff; cursor: pointer; }
+      .consent button.primary, .sim-ad__done:not(:disabled) { background: #8c7cf0; color: #14112b; font-weight: bold; }
+      .consent button:focus-visible, .sim-ad button:focus-visible { outline: 3px solid #ffd166; }
+      /* anúncio simulado (modo de teste sem AdSense) */
+      .sim-ad { position: fixed; inset: 0; background: #000c; display: flex; align-items: center; justify-content: center; z-index: 30; font: 16px/1.5 "Trebuchet MS", "Segoe UI", sans-serif; }
+      .sim-ad__box { width: min(520px, calc(100% - 32px)); background: #f4f1ff; color: #14112b; border-radius: 14px; padding: 22px; text-align: center; }
+      .sim-ad__tag { font-size: 12px; letter-spacing: 0.08em; font-weight: bold; color: #6a4fd8; }
+      .sim-ad__count { font-size: 28px; font-weight: bold; min-height: 1.5em; margin: 4px 0; }
+      .sim-ad__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+      .sim-ad button { border-color: #6a4fd8; background: #fff; color: #14112b; }
+      .sim-ad button:disabled { opacity: 0.5; cursor: default; }
     </style>
   </head>
   <body>

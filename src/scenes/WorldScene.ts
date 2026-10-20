@@ -9,6 +9,9 @@ import { createMonster } from '../systems/Monster';
 import { rollEncounter } from '../systems/Encounters';
 import { SaveManager } from '../systems/SaveManager';
 import { toast } from '../ui/Overlay';
+import { AdManager } from '../systems/AdManager';
+import { watchForCoins } from '../systems/Rewards';
+import { ADS } from '../ads.config';
 import type { BattleData } from './BattleScene';
 import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
 import { getSpecies } from '../data/monsters';
@@ -546,8 +549,8 @@ export class WorldScene extends BaseScene {
     const box = this.add.container(0, 0).setDepth(9500);
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.4).setOrigin(0).setInteractive();
     shade.on('pointerup', () => this.toggleMenu());
-    box.add([shade, makePanel(this, x - 20, 40, 260, 480)]);
-    box.add(makeText(this, x + 110, 498, `Moedas: ${this.st.money}`, 18, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
+    box.add([shade, makePanel(this, x - 20, 14, 260, 516)]);
+    box.add(makeText(this, x + 110, 510, `Moedas: ${this.st.money}`, 18, UI.accent, { fontStyle: 'bold' }).setOrigin(0.5));
     const list = new MenuList(
       this,
       [
@@ -560,6 +563,22 @@ export class WorldScene extends BaseScene {
             toast(this, SaveManager.save() ? '✓ Jogo salvo' : 'Não foi possível salvar neste navegador');
           },
         },
+        ...(AdManager.enabled
+          ? [
+              {
+                label: `+${ADS.rewardCoins} moedas`,
+                hint: 'assistir anúncio',
+                onSelect: () => {
+                  this.toggleMenu();
+                  this.moving = true;
+                  void watchForCoins().then(async (msg) => {
+                    await this.dialog.show([msg]);
+                    this.moving = false;
+                  });
+                },
+              },
+            ]
+          : []),
         {
           label: `Som: ${Settings.get().soundOn ? 'Ligado' : 'Desligado'}`,
           onSelect: () => {
@@ -571,7 +590,7 @@ export class WorldScene extends BaseScene {
         { label: 'Menu Inicial', onSelect: () => this.goTo(SCENES.Menu) },
         { label: 'Fechar', onSelect: () => this.toggleMenu() },
       ],
-      { x, y: 58, itemWidth: 220, itemHeight: 54, gap: 10 },
+      { x, y: 30, itemWidth: 220, itemHeight: 52, gap: 8 },
     );
     box.add(list);
     fixToCamera(box);

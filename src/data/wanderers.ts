@@ -34,7 +34,7 @@ export const WANDERERS: WandererDef[] = [
     id: 'w_bia', map: 'floresta', name: 'Caçadora de Insetos Bia',
     look: { hair: 0x6a994e, outfit: 0xbc6c25, accent: 0xfefae0, skin: 0xf1c27d },
     home: { x: 8, y: 11 }, radius: 3,
-    team: [['larvilo', 4], ['verdakor', 5]], prize: 180,
+    team: [['larvilo', 4], ['verdaki', 5]], prize: 180,
     intro: 'Shhh! Você assustou meus insetos! Agora vai ter que batalhar!',
     win: ['Seus pets são rápidos como vagalumes...'],
     rematch: 'Achei insetos novos no mato! Revanche?',

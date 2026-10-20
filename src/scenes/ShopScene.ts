@@ -3,6 +3,9 @@ import { SCENES, UI } from '../config';
 import { ITEMS, type ItemData } from '../data/items';
 import { GameState } from '../systems/GameState';
 import { buy, itemCount } from '../systems/Inventory';
+import { AdManager } from '../systems/AdManager';
+import { watchForCoins } from '../systems/Rewards';
+import { ADS } from '../ads.config';
 import { MenuList, type MenuItem } from '../ui/MenuList';
 import { choose, notify } from '../ui/Overlay';
 import { makePanel, makeText } from '../ui/text';
@@ -34,8 +37,22 @@ export class ShopScene extends BaseScene {
       hint: `${it.description}  (você tem ${itemCount(it.id)})`,
       onSelect: () => void this.purchase(it),
     }));
+    if (AdManager.enabled) {
+      items.push({
+        label: `▶ Ganhar ${ADS.rewardCoins} moedas`,
+        hint: 'assistindo a um anúncio (opcional)',
+        onSelect: () => {
+          const idx = this.menu?.selectedIndex ?? 0;
+          this.menu?.setEnabled(false);
+          void watchForCoins().then(async (msg) => {
+            await notify(this, msg);
+            this.build(idx);
+          });
+        },
+      });
+    }
     items.push({ label: 'Sair da loja', onSelect: () => this.goTo(SCENES.World) });
-    this.menu = new MenuList(this, items, { x: 180, y: 176, itemWidth: 600, itemHeight: 60, gap: 12, fontSize: 21, onCancel: () => this.goTo(SCENES.World) });
+    this.menu = new MenuList(this, items, { x: 180, y: 168, itemWidth: 600, itemHeight: 56, gap: 10, fontSize: 21, onCancel: () => this.goTo(SCENES.World) });
     this.menu.select(selected);
   }
 

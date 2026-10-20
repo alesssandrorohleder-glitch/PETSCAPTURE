@@ -1,0 +1,4 @@
+# ads.txt — autoriza o Google a vender anúncios neste site.
+# Troque pub-0000000000000000 pelo SEU ID de publisher do AdSense
+# (o mesmo de src/ads.config.ts, sem o "ca-" do começo).
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
