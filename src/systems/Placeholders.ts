@@ -33,65 +33,214 @@ const shade = (c: number, f: number): number => {
 const rng = (seed: number) => () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
 
 // ---------------------------------------------------------------- tiles
-export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string): string {
-  return ensure(scene, `tiles/${theme.id}/${name}`, TILE, TILE, (g) => {
-    const r = rng(name.length * 31 + theme.ground);
-    const ground = () => {
-      g.fillStyle(theme.ground).fillRect(0, 0, TILE, TILE);
-      g.fillStyle(shade(theme.ground, 0.88));
-      for (let i = 0; i < 5; i++) g.fillRect(Math.floor(r() * 30), Math.floor(r() * 30), 2, 2);
-    };
+/** Biomas de chão gramado (os outros são areia, neve, pedra...). */
+const GRASSY = new Set(['vila', 'floresta', 'planalto', 'vento']);
+/** Quantas variações de cada tile de chão são sorteadas pelo mapa (evita o efeito "xadrez"). */
+export const TILE_VARIANTS = 4;
+
+const mixc = (a: number, b: number, t: number): number => {
+  const ca = Phaser.Display.Color.IntegerToColor(a);
+  const cb = Phaser.Display.Color.IntegerToColor(b);
+  const m = (x: number, y: number) => Math.round(x + (y - x) * t);
+  return Phaser.Display.Color.GetColor(m(ca.red, cb.red), m(ca.green, cb.green), m(ca.blue, cb.blue));
+};
+
+/** Desenha repetindo nas bordas, para o tile emendar sem costura com os vizinhos. */
+const wrapped = (x: number, y: number, pad: number, fn: (x: number, y: number) => void): void => {
+  for (const ox of [-TILE, 0, TILE]) {
+    for (const oy of [-TILE, 0, TILE]) {
+      const px = x + ox;
+      const py = y + oy;
+      if (px > -pad && px < TILE + pad && py > -pad && py < TILE + pad) fn(px, py);
+    }
+  }
+};
+
+/** Folha de grama: base escura, ponta clara, levemente curva. */
+function blade(g: Phaser.GameObjects.Graphics, x: number, y: number, len: number, lean: number, w: number, dark: number, light: number): void {
+  const V2 = Phaser.Math.Vector2;
+  const tipX = x + lean;
+  const tipY = y - len;
+  g.fillStyle(dark).fillPoints([new V2(x - w, y), new V2(x + lean * 0.45 - w * 0.4, y - len * 0.55), new V2(tipX, tipY), new V2(x + lean * 0.45 + w * 0.4, y - len * 0.55), new V2(x + w, y)], true);
+  g.fillStyle(light).fillPoints([new V2(x + lean * 0.3 - w * 0.45, y - len * 0.35), new V2(tipX, tipY), new V2(x + lean * 0.3 + w * 0.2, y - len * 0.35)], true);
+}
+
+/** Textura orgânica de chão: manchas suaves e tufinhos de grama com luz e sombra (ou grãos de areia/neve/pedra). */
+function drawGround(g: Phaser.GameObjects.Graphics, theme: BiomeTheme, r: () => number): void {
+  const base = theme.ground;
+  const grassy = GRASSY.has(theme.id);
+  g.fillStyle(base).fillRect(0, 0, TILE, TILE);
+  // manchas suaves e discretas (a variação grande de cor é feita no mapa inteiro, sem costura)
+  for (let i = 0; i < 6; i++) {
+    const d = grassy ? 0.025 : 0.02;
+    const col = shade(base, r() < 0.5 ? 1 - d : 1 + d);
+    const rad = 5 + r() * 8;
+    wrapped(r() * TILE, r() * TILE, rad, (x, y) => g.fillStyle(col, grassy ? 0.6 : 0.4).fillCircle(x, y, rad));
+  }
+  if (grassy) {
+    const shadow = shade(base, 0.72);
+    // tufinhos: 3 a 5 folhas em leque, cada um com sombra na base
+    for (let i = 0; i < 16; i++) {
+      const cx = r() * TILE;
+      const cy = r() * TILE;
+      const n = 3 + Math.floor(r() * 3);
+      const size = 0.6 + r() * 0.45;
+      const tone = 0.97 + r() * 0.08;
+      wrapped(cx, cy, 8, (x, y) => {
+        g.fillStyle(shadow, 0.22).fillEllipse(x, y + 0.6, 6 * size, 1.8 * size);
+        for (let k = 0; k < n; k++) {
+          const t = n === 1 ? 0 : k / (n - 1) - 0.5;
+          blade(g, x + t * 3 * size, y, (3.2 + (1 - Math.abs(t) * 1.4) * 2.6) * size, t * 3.4 * size, 0.55 * size, shade(base, 0.83 * tone), shade(base, 1.2 * tone));
+        }
+      });
+    }
+    // pontinhos de luz e, às vezes, uma florzinha miúda
+    for (let i = 0; i < 6; i++) g.fillStyle(shade(base, 1.3), 0.7).fillCircle(r() * TILE, r() * TILE, 0.35);
+    if (r() < 0.3) {
+      const fx = 4 + r() * 24;
+      const fy = 4 + r() * 24;
+      g.fillStyle(r() < 0.5 ? 0xffffff : 0xffe066, 0.95).fillCircle(fx, fy, 0.8).fillCircle(fx + 1.4, fy + 0.6, 0.7).fillCircle(fx + 0.4, fy - 1.2, 0.7);
+    }
+  } else {
+    for (let i = 0; i < 26; i++) {
+      g.fillStyle(shade(base, 0.82 + r() * 0.32), 0.8).fillCircle(r() * TILE, r() * TILE, 0.5 + r() * 0.9);
+    }
+  }
+}
+
+export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string, variant = 0): string {
+  const baseKey = `tiles/${theme.id}/${name}`;
+  // imagem própria do tile vale para todas as variações
+  if (scene.textures.exists(baseKey)) return baseKey;
+  const key = variant ? `${baseKey}_${variant}` : baseKey;
+  return ensure(scene, key, TILE, TILE, (g) => {
+    const r = rng(name.length * 31 + theme.ground + variant * 977);
+    const ground = () => drawGround(g, theme, r);
     switch (name) {
       case 'ground':
         ground();
         break;
-      case 'path':
+      case 'path': {
+        // terra batida: tons misturados, pedrinhas com brilho e marcas de passagem
         g.fillStyle(theme.path).fillRect(0, 0, TILE, TILE);
-        g.fillStyle(shade(theme.path, 0.85));
-        for (let i = 0; i < 6; i++) g.fillCircle(r() * 32, r() * 32, 1.5);
-        break;
-      case 'tallgrass':
-        ground();
-        g.fillStyle(theme.tallgrass);
-        for (let i = 0; i < 4; i++) {
-          const bx = 2 + i * 8;
-          g.fillTriangle(bx, 30, bx + 3, 8 + r() * 6, bx + 6, 30);
-          g.fillTriangle(bx + 3, 30, bx + 6, 14 + r() * 6, bx + 9, 30);
+        for (let i = 0; i < 8; i++) g.fillStyle(shade(theme.path, r() < 0.5 ? 0.92 : 1.06), 0.6).fillCircle(r() * TILE, r() * TILE, 3 + r() * 6);
+        for (let i = 0; i < 30; i++) g.fillStyle(shade(theme.path, 0.8 + r() * 0.15), 0.8).fillCircle(r() * TILE, r() * TILE, 0.4 + r() * 0.6);
+        for (let i = 0; i < 5; i++) {
+          const x = r() * TILE;
+          const y = r() * TILE;
+          const s = 0.9 + r() * 1.3;
+          g.fillStyle(shade(theme.path, 0.68)).fillEllipse(x, y + 0.5, s * 2.3, s * 1.6);
+          g.fillStyle(shade(theme.path, 1.12)).fillEllipse(x - 0.2, y - 0.2, s * 2, s * 1.3);
         }
-        g.fillStyle(shade(theme.tallgrass, 0.75)).fillRect(0, 28, 32, 4);
+        break;
+      }
+      case 'tallgrass':
+        // o mato alto em si é um objeto (tallGrassTexture) que passa do tile; aqui só o chão mais escuro
+        ground();
         break;
       case 'tree':
         // o tile é só chão; a árvore em si é um objeto alto (treeTexture)
         ground();
-        g.fillStyle(shade(theme.ground, 0.8)).fillEllipse(16, 26, 26, 10);
+        g.fillStyle(shade(theme.ground, 0.8), 0.8).fillEllipse(16, 26, 26, 10);
         break;
       case 'water':
         g.fillStyle(theme.water).fillRect(0, 0, TILE, TILE);
-        g.lineStyle(2, shade(theme.water, 1.35), 0.8);
-        g.beginPath().arc(8, 12, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
-        g.beginPath().arc(22, 24, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
+
+        g.lineStyle(1.5, shade(theme.water, 1.35), 0.8);
+        g.beginPath().arc(4 + r() * 10, 6 + r() * 8, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
+        g.beginPath().arc(16 + r() * 10, 18 + r() * 8, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
         break;
       case 'rock':
         ground();
-        g.fillStyle(theme.rock).fillEllipse(16, 18, 26, 20);
-        g.fillStyle(shade(theme.rock, 1.3)).fillEllipse(12, 13, 8, 5);
+        g.fillStyle(0x000000, 0.18).fillEllipse(16, 25, 28, 9);
+        g.fillStyle(shade(theme.rock, 0.8)).fillEllipse(16, 19, 26, 19);
+        g.fillStyle(theme.rock).fillEllipse(15, 17, 23, 16);
+        g.fillStyle(shade(theme.rock, 1.3)).fillEllipse(11, 12, 8, 4.5);
+        g.lineStyle(1, shade(theme.rock, 0.65), 0.8).lineBetween(17, 13, 20, 20);
         break;
       case 'flowers':
         ground();
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 6; i++) {
           const fx = 4 + r() * 24;
-          const fy = 4 + r() * 24;
-          g.fillStyle(theme.flowers).fillCircle(fx, fy, 3);
-          g.fillStyle(0xffffff).fillCircle(fx, fy, 1);
+          const fy = 5 + r() * 24;
+          g.lineStyle(1, shade(theme.ground, 0.7)).lineBetween(fx, fy, fx, fy + 4);
+          for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2;
+            g.fillStyle(theme.flowers).fillCircle(fx + Math.cos(a) * 1.8, fy + Math.sin(a) * 1.8, 1.4);
+          }
+          g.fillStyle(0xffe066).fillCircle(fx, fy, 1);
         }
         break;
       case 'fence':
         ground();
+        g.fillStyle(0x000000, 0.15).fillRect(0, 27, 32, 3);
         g.fillStyle(0x8b5a2b).fillRect(0, 12, 32, 4).fillRect(0, 22, 32, 4).fillRect(4, 8, 4, 22).fillRect(24, 8, 4, 22);
+        g.fillStyle(0xa47148).fillRect(0, 12, 32, 1.5).fillRect(0, 22, 32, 1.5);
         break;
       default:
         g.fillStyle(0xff00ff).fillRect(0, 0, TILE, TILE);
     }
+  });
+}
+
+/**
+ * Mato alto: tufo de folhas curvas que passa um pouco do tile, desenhado na frente das pernas
+ * de quem pisa nele. Arquivo próprio (opcional): public/assets/objects/tallgrass_<bioma>.png
+ */
+export const TALLGRASS_SIZE = { w: 40, h: 24 };
+export function tallGrassTexture(scene: Phaser.Scene, theme: BiomeTheme, variant = 0): string {
+  const { w, h } = TALLGRASS_SIZE;
+  const real = `objects/tallgrass_${theme.id}`;
+  if (scene.textures.exists(real)) return real;
+  // desenhado em escala 2 dentro do quadro (mais detalhe), exibido em w×h
+  return ensure(scene, variant ? `${real}_${variant}` : real, w * 2, h * 2, (g) => {
+    const W = w * 2;
+    const H = h * 2;
+    const r = rng(theme.tallgrass + variant * 131);
+    const c = theme.tallgrass;
+    const blades = 52;
+    for (let i = 0; i < blades; i++) {
+      // de trás (escuras e altas) para a frente (claras e mais baixas)
+      const t = i / blades;
+      const edge = Math.abs(r() - 0.5) * 2; // folhas das pontas são mais baixas: silhueta arredondada
+      const bx = W / 2 + (r() - 0.5) * (W - 8);
+      const root = H - 2 - r() * 8 * (1 - t);
+      const len = (26 + r() * 20) * (1 - (Math.abs(bx - W / 2) / W) * 0.8) - t * 6 + edge;
+      const lean = (bx - W / 2) * 0.35 + (r() - 0.5) * 10;
+      const tone = 0.74 + t * 0.4 + (r() - 0.5) * 0.12;
+      blade(g, bx, root, len, lean, 2.2 + r() * 1.6, shade(c, tone * 0.82), shade(c, tone * 1.28));
+    }
+    for (let i = 0; i < 3; i++) g.fillStyle(mixc(c, 0xffffff, 0.5), 0.9).fillCircle(W / 2 + (r() - 0.5) * (W - 16), H - 26 - r() * 10, 1.4);
+  });
+}
+
+/** Borda irregular de grama/chão por cima da estrada (some com o "quadrado" das estradas). */
+export function pathEdgeTexture(scene: Phaser.Scene, theme: BiomeTheme, variant = 0): string {
+  const w = TILE + 6;
+  const h = 9;
+  return ensure(scene, `ph-edge/${theme.id}/${variant}`, w, h, (g) => {
+    const r = rng(theme.path + variant * 53);
+    const pts: Phaser.Math.Vector2[] = [new Phaser.Math.Vector2(0, 0), new Phaser.Math.Vector2(w, 0)];
+    for (let x = w; x >= 0; x -= 2) pts.push(new Phaser.Math.Vector2(x, 1.5 + r() * 3 + Math.sin(x * 0.35 + variant) * 1.2));
+    g.fillStyle(shade(theme.path, 0.82), 0.6).fillPoints(pts.map((p) => new Phaser.Math.Vector2(p.x, p.y + 1.2)), true);
+    g.fillStyle(theme.ground).fillPoints(pts, true);
+    if (GRASSY.has(theme.id)) {
+      for (let i = 0; i < 18; i++) {
+        const x = r() * w;
+        const len = 2 + r() * 4;
+        g.lineStyle(0.9, shade(theme.ground, r() < 0.5 ? 0.8 : 1.15)).lineBetween(x, 2, x + (r() - 0.5) * 2, 2 + len);
+      }
+    } else {
+      for (let i = 0; i < 10; i++) g.fillStyle(shade(theme.ground, 0.85 + r() * 0.25)).fillCircle(r() * w, 3 + r() * 3, 0.8);
+    }
+  });
+}
+
+/** Sombra oval sob personagens e pets. */
+export function shadowTexture(scene: Phaser.Scene): string {
+  return ensure(scene, 'ph-shadow', 24, 8, (g) => {
+    g.fillStyle(0x000000, 0.12).fillEllipse(12, 4, 24, 8);
+    g.fillStyle(0x000000, 0.14).fillEllipse(12, 4, 17, 5.5);
   });
 }
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FONT, TEXTURE_SCALE, UI } from '../config';
+import { FONT, TEXT_RESOLUTION, UI } from '../config';
 
 export function makeText(
   scene: Phaser.Scene,
@@ -14,7 +14,7 @@ export function makeText(
     fontFamily: FONT,
     fontSize: `${size}px`,
     color,
-    resolution: TEXTURE_SCALE,
+    resolution: TEXT_RESOLUTION,
     ...style,
   });
 }

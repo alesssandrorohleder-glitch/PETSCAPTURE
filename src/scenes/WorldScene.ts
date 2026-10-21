@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, SCENES, TILE, UI } from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, SCENES, TILE, UI, WORLD_ZOOM } from '../config';
 import { ENCOUNTER_RATE, getMap, TILES, type BuildingDef, type Facing, type MapDef, type NpcDef, type WarpDef } from '../data/maps';
 import { getTrainer, TRAINERS, type TrainerData } from '../data/trainers';
 import { AudioManager } from '../systems/AudioManager';
@@ -17,7 +17,7 @@ import type { BattleData } from './BattleScene';
 import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
 import { getSpecies } from '../data/monsters';
 import { WANDERERS, wandererFlag, type WandererDef } from '../data/wanderers';
-import { buildingTexture, fitInto, monsterTexture, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
+import { buildingTexture, fitInto, monsterTexture, overworldSprite, pathEdgeTexture, shadowTexture, signTexture, TALLGRASS_SIZE, tallGrassTexture, TILE_VARIANTS, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
@@ -55,6 +55,31 @@ interface NpcObj {
   nextMove: number;
 }
 
+/** Personagem/pet animado: respira parado, balança ao andar e tem sombra. */
+interface Actor {
+  sprite: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Image;
+  /** defasagem da respiração, para não ficarem todos sincronizados */
+  phase: number;
+  /** quando começou o último passo (ms da cena) */
+  stepAt: number;
+  stepMs: number;
+  pet?: boolean;
+}
+
+/** Mistura duas cores (t = 0 → a, t = 1 → b). */
+const blend = (a: number, b: number, t: number): number => {
+  const c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 100, t * 100);
+  return Phaser.Display.Color.GetColor(c.r, c.g, c.b);
+};
+
+/** Número pseudo-aleatório estável por tile (mesmo desenho a cada visita). */
+const tileHash = (x: number, y: number, salt = 0): number => {
+  let h = (x * 73856093) ^ (y * 19349663) ^ (salt * 83492791);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+};
+
 /** Quem aparece na abertura da batalha (retrato e nome). */
 interface Opponent {
   id: string;
@@ -71,6 +96,9 @@ export class WorldScene extends BaseScene {
   /** pet que acompanha o jogador (o primeiro da equipe que ainda pode lutar) */
   private pet?: Phaser.GameObjects.Image;
   private petTile = { x: 0, y: 0 };
+  private actors: Actor[] = [];
+  /** tufos de mato alto por tile ("x,y"), para balançarem quando alguém passa */
+  private tufts = new Map<string, Phaser.GameObjects.Image[]>();
   private look!: TrainerData['look'];
   private controls!: Controls;
   private dialog!: DialogBox;
@@ -93,12 +121,15 @@ export class WorldScene extends BaseScene {
     this.engaging = false;
     this.menu = undefined;
     this.npcs = [];
+    this.actors = [];
+    this.tufts = new Map();
     this.look = getTrainer(this.st.trainerId).look;
 
     this.drawMap();
     this.player = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1);
     this.setFacing(this.st.facing);
     this.placePlayer();
+    this.addActor(this.player, STEP_MS);
     this.pet = undefined;
     this.createPet();
     this.setupCameras();
@@ -223,7 +254,7 @@ export class WorldScene extends BaseScene {
     this.worldLayer = world;
     world.add(this.children.list.filter((o) => (o as unknown) !== world));
     const cam = this.cameras.main;
-    cam.setZoom(RENDER_SCALE);
+    cam.setZoom(RENDER_SCALE * WORLD_ZOOM);
     cam.setBounds(0, 0, this.map.grid[0].length * TILE, this.map.grid.length * TILE);
     cam.startFollow(this.player, true, 0.2, 0.2, 0, TILE / 2);
     cam.setRoundPixels(true);
@@ -239,9 +270,49 @@ export class WorldScene extends BaseScene {
   // ------------------------------------------------------------------ mapa
   private drawMap(): void {
     const { grid, theme } = this.map;
+    const H = grid.length;
+    const W = grid[0].length;
+    const nameAt = (x: number, y: number) => (y < 0 || y >= H || x < 0 || x >= W ? undefined : TILES[grid[y][x]]?.name);
     grid.forEach((row, y) =>
       [...row].forEach((ch, x) => {
-        this.add.image(x * TILE, y * TILE, tileTexture(this, theme, TILES[ch].name)).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(0);
+        const name = TILES[ch].name;
+        const variant = name === 'water' ? 0 : Math.floor(tileHash(x, y) * TILE_VARIANTS);
+        const tile = this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, tileTexture(this, theme, name, variant)).setDisplaySize(TILE, TILE).setDepth(0);
+        // chão e estrada podem ser espelhados: ainda menos repetição
+        if (name === 'ground' || name === 'path' || name === 'tallgrass') tile.setFlip(tileHash(x, y, 1) < 0.5, tileHash(x, y, 2) < 0.5);
+        if (name === 'path') {
+          // borda irregular onde a estrada encontra o chão
+          const sides: [number, number, number][] = [[0, -1, 0], [0, 1, 180], [-1, 0, -90], [1, 0, 90]];
+          for (const [dx, dy, angle] of sides) {
+            const n = nameAt(x + dx, y + dy);
+            if (!n || n === 'path' || n === 'water') continue;
+            this.add
+              .image(x * TILE + TILE / 2 + (dx * TILE) / 2, y * TILE + TILE / 2 + (dy * TILE) / 2, pathEdgeTexture(this, theme, Math.floor(tileHash(x, y, 3 + angle) * 3)))
+              .setOrigin(0.5, 0)
+              .setDisplaySize(TILE + 6, 9)
+              .setAngle(angle)
+              .setDepth(0.6);
+          }
+        }
+        if (name === 'tallgrass') {
+          // dois tufos por tile, em posições sorteadas: o mato não forma fileiras retas
+          const group: Phaser.GameObjects.Image[] = [];
+          for (let k = 0; k < 3; k++) {
+            const key = tallGrassTexture(this, theme, Math.floor(tileHash(x, y, 4 + k) * 3));
+            const ox = [-5, 6, 0][k] + (tileHash(x, y, 5 + k) - 0.5) * 8;
+            const oy = [-14, -5, 3][k] + tileHash(x, y, 9 + k) * 3;
+            const tuft = this.add
+              .image(x * TILE + TILE / 2 + ox, (y + 1) * TILE + oy, key)
+              .setOrigin(0.5, 1)
+              .setDisplaySize(TALLGRASS_SIZE.w * (0.9 + tileHash(x, y, 11 + k) * 0.2), TALLGRASS_SIZE.h * (0.9 + tileHash(x, y, 13 + k) * 0.25))
+              .setFlipX(tileHash(x, y, 6 + k) < 0.5)
+              .setDepth(k < 2 ? y * TILE + 1 + k * 0.1 : y * TILE + 3.5); // o da frente cobre as pernas de quem está no tile
+            // vento: balanço suave e dessincronizado
+            this.tweens.add({ targets: tuft, angle: { from: -2.5, to: 2.5 }, duration: 1300 + tileHash(x, y, 7 + k) * 900, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: tileHash(x, y, 8 + k) * 1200 });
+            group.push(tuft);
+          }
+          this.tufts.set(`${x},${y}`, group);
+        }
         if (ch === '#') {
           // árvore alta: base no tile, copa avançando sobre o tile de cima
           this.add
@@ -252,6 +323,22 @@ export class WorldScene extends BaseScene {
         }
       }),
     );
+    // chão mais escuro e arredondado sob as moitas de mato alto (sem cantos quadrados)
+    const under = this.add.graphics().setDepth(0.55);
+    for (const [ring, t] of [[25, 0.3], [21, 0.5]] as const) {
+      under.fillStyle(blend(theme.ground, Phaser.Display.Color.ValueToColor(theme.tallgrass).darken(25).color, t));
+      grid.forEach((row, y) => [...row].forEach((ch, x) => TILES[ch].name === 'tallgrass' && under.fillCircle(x * TILE + TILE / 2 + (tileHash(x, y, 20) - 0.5) * 6, y * TILE + TILE / 2 + 2, ring + tileHash(x, y, 21) * 4)));
+    }
+    // manchas grandes e suaves por cima do chão: quebram o desenho em grade
+    const patches = this.add.graphics().setDepth(0.5);
+    const soft = theme.ground > 0xc00000; // chão claro (areia/neve): manchas bem discretas
+    const count = Math.round((W * H) / 3);
+    for (let i = 0; i < count; i++) {
+      const px = tileHash(i, 11, 9) * W * TILE;
+      const py = tileHash(i, 13, 10) * H * TILE;
+      const light = tileHash(i, 17, 11) < 0.5;
+      patches.fillStyle(light ? 0xfff6c2 : 0x0b3d0b, (light ? 0.06 : 0.07) * (soft ? 0.4 : 1)).fillEllipse(px, py, 40 + tileHash(i, 19, 12) * 90, 26 + tileHash(i, 23, 13) * 60);
+    }
     for (const b of this.map.buildings) {
       this.add
         .image(b.x * TILE, b.y * TILE, buildingTexture(this, b.kind, b.w, b.h))
@@ -278,6 +365,7 @@ export class WorldScene extends BaseScene {
       this.placeNpc(npc);
       this.applySprite(sprite, def.id, look, def.facing);
       this.npcs.push(npc);
+      this.addActor(sprite, 220);
     }
   }
 
@@ -329,6 +417,7 @@ export class WorldScene extends BaseScene {
     this.petTile = free ?? { x: this.st.x, y: this.st.y };
     this.pet = this.add.image(0, 0, monsterTexture(this, species)).setOrigin(0.5, 1);
     fitInto(this.pet, TILE * 1.3, TILE * 1.3);
+    this.addActor(this.pet, STEP_MS, true);
     this.placePet();
     if (this.petTile.x !== this.st.x) this.pet.setFlipX(this.petTile.x < this.st.x);
   }
@@ -340,10 +429,15 @@ export class WorldScene extends BaseScene {
 
   /** Liga/desliga o pet na hora (menu de pausa). */
   private refreshPet(): void {
+    const old = this.actors.find((a) => a.pet);
+    old?.shadow.destroy();
+    this.actors = this.actors.filter((a) => !a.pet);
     this.pet?.destroy();
     this.pet = undefined;
     if (!this.followerSpecies()) return;
     this.createPet();
+    const actor = this.actors.find((a) => a.pet);
+    if (actor) this.addToWorld(actor.shadow);
     if (this.pet) this.addToWorld(this.pet);
   }
 
@@ -355,6 +449,7 @@ export class WorldScene extends BaseScene {
     this.petTile = { x: toX, y: toY };
     this.tweens.killTweensOf(pet);
     pet.setDepth(Math.max(toY * TILE + 2, pet.depth));
+    this.stepped(pet);
     this.tweens.add({
       targets: pet,
       x: toX * TILE + TILE / 2,
@@ -362,7 +457,61 @@ export class WorldScene extends BaseScene {
       duration: STEP_MS,
       onComplete: () => pet.setDepth(toY * TILE + 2),
     });
-    this.tweens.add({ targets: pet, scaleY: pet.scaleY * 0.9, duration: STEP_MS / 2, yoyo: true });
+    this.rustle(toX, toY);
+  }
+
+  // ------------------------------------------------------------------ vida: respiração, passos, sombras
+  private addActor(sprite: Phaser.GameObjects.Image, stepMs: number, pet = false): void {
+    const shadow = this.add.image(sprite.x, sprite.y, shadowTexture(this)).setDisplaySize(pet ? 22 : 20, 7);
+    this.actors.push({ sprite, shadow, phase: Math.random() * Math.PI * 2, stepAt: -9999, stepMs, pet });
+  }
+
+  private stepped(sprite: Phaser.GameObjects.Image): void {
+    const a = this.actors.find((o) => o.sprite === sprite);
+    if (a) a.stepAt = this.time.now;
+  }
+
+  /** Mato alto balança quando alguém passa. */
+  private rustle(x: number, y: number): void {
+    for (const tuft of this.tufts.get(`${x},${y}`) ?? []) {
+      this.tweens.add({ targets: tuft, scaleX: tuft.scaleX * 1.1, duration: 90, yoyo: true, repeat: 1 });
+    }
+  }
+
+  /** Chamado a cada quadro: pulinho/balanço ao andar, respiração parado, sombra seguindo. */
+  private animateActors(now: number): void {
+    for (const a of this.actors) {
+      const s = a.sprite;
+      if (!s.active) continue;
+      const base = Math.abs(s.scaleX);
+      const t = (now - a.stepAt) / a.stepMs;
+      let hop = 0;
+      let squash = 1;
+      let angle = 0;
+      if (t >= 0 && t < 1) {
+        // andando: pulinho a cada passo e leve balanço de um lado para o outro
+        const k = Math.sin(t * Math.PI);
+        hop = k * (a.pet ? 5 : 2.5);
+        squash = 1 - (1 - k) * 0.06;
+        angle = Math.sin(t * Math.PI * 2) * (a.pet ? 6 : 4);
+      } else {
+        // parado: respira; o pet dá pulinhos de vez em quando
+        const breath = Math.sin(now / 380 + a.phase);
+        squash = 1 + breath * (a.pet ? 0.045 : 0.025);
+        if (a.pet) {
+          const cycle = ((now + a.phase * 700) % 2600) / 2600;
+          if (cycle > 0.85) {
+            const u = (cycle - 0.85) / 0.15;
+            hop = Math.sin(u * Math.PI) * 4;
+          }
+        }
+      }
+      s.setScale(base, base * squash).setAngle(angle);
+      const hgt = s.height * base;
+      s.setOrigin(0.5, hgt > 0 ? 1 + hop / (hgt * squash) : 1);
+      a.shadow.setPosition(s.x, s.y - 1).setDepth(s.depth - 0.4).setVisible(s.visible && s.alpha > 0.5);
+      a.shadow.setAlpha(1 - hop * 0.08);
+    }
   }
 
   // ------------------------------------------------------------------ colisão
@@ -414,6 +563,8 @@ export class WorldScene extends BaseScene {
           n.x = nx;
           n.y = ny;
           n.sprite.setDepth(ny * TILE + 2);
+          this.stepped(n.sprite);
+          this.rustle(nx, ny);
           this.tweens.add({ targets: n.sprite, x: nx * TILE + TILE / 2, y: (ny + 1) * TILE, duration: 220 });
         }
       }
@@ -484,7 +635,8 @@ export class WorldScene extends BaseScene {
   }
 
   // ------------------------------------------------------------------ loop
-  update(): void {
+  update(time: number): void {
+    this.animateActors(time);
     if (this.dialog.open || this.menu) this.controls.clearTap();
     if (this.locked) return;
     this.wanderTick(this.time.now);
@@ -510,6 +662,8 @@ export class WorldScene extends BaseScene {
     this.st.x = nx;
     this.st.y = ny;
     this.player.setDepth(ny * TILE + 3);
+    this.stepped(this.player);
+    this.rustle(nx, ny);
     this.tweens.add({
       targets: this.player,
       x: nx * TILE + TILE / 2,

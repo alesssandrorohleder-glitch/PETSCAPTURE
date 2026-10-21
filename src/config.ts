@@ -22,8 +22,12 @@ function pickRenderScale(): number {
 
 /** Zoom das câmeras (tamanho do canvas = 960×540 × RENDER_SCALE). Use ?scale=2 para forçar Full HD. */
 export const RENDER_SCALE = pickRenderScale();
-/** Escala das texturas geradas e dos textos (sempre 2x = nítido até Full HD). */
-export const TEXTURE_SCALE = 2;
+/** Aproximação extra da câmera do mapa (personagens e cenário maiores na tela). */
+export const WORLD_ZOOM = 1.6;
+/** Escala das texturas geradas (3x = nítidas mesmo com o zoom do mapa em Full HD). */
+export const TEXTURE_SCALE = 3;
+/** Resolução dos textos (2x = nítido até Full HD). */
+export const TEXT_RESOLUTION = 2;
 export const TILE = 32;
 
 export const FONT = '"Trebuchet MS", "Segoe UI", Verdana, sans-serif';
