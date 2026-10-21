@@ -264,6 +264,13 @@ As configurações para **Vercel** (`vercel.json`) e **Netlify** (`netlify.toml`
    build `npm run build` e pasta `dist` → **Deploy**.
 3. Domínio próprio: **Domain management**. A URL é detectada automaticamente para as meta tags.
 
+### 2c. GitHub Pages (o mais rápido, já configurado)
+1. No repositório do GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Pronto: a cada `git push` na `main`, o workflow `.github/workflows/pages.yml` publica o jogo em
+   `https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/` (acompanhe na aba **Actions**).
+3. Login online (opcional): em **Settings → Secrets and variables → Actions → Variables**, crie
+   `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e rode o workflow de novo.
+
 > Sem GitHub: rode `npm run build` e arraste a pasta `dist/` em [app.netlify.com/drop](https://app.netlify.com/drop).
 
 ### 3. Depois de publicar

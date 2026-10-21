@@ -68,7 +68,8 @@ export default defineConfig({
   base: './',
   plugins: [assetManifest(), siteMeta()],
   build: {
-    target: 'es2020',
+    // navegadores de celular de ~2020 em diante (iPhone com iOS 13+, Android com Chrome 79+)
+    target: ['es2019', 'safari13', 'chrome79', 'firefox78', 'edge79'],
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: { manualChunks: (id) => (id.includes('node_modules/phaser') ? 'phaser' : undefined) },
