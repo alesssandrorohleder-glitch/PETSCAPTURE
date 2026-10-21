@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, SCENES, TILE, UI, WORLD_ZOOM } from '../config';
+import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, SCENES, TEXTURE_SCALE, TILE, UI, WORLD_ZOOM } from '../config';
 import { ENCOUNTER_RATE, getMap, TILES, type BuildingDef, type Facing, type MapDef, type NpcDef, type WarpDef } from '../data/maps';
 import { getTrainer, TRAINERS, type TrainerData } from '../data/trainers';
 import { AudioManager } from '../systems/AudioManager';
@@ -273,6 +273,9 @@ export class WorldScene extends BaseScene {
     const H = grid.length;
     const W = grid[0].length;
     const nameAt = (x: number, y: number) => (y < 0 || y >= H || x < 0 || x >= W ? undefined : TILES[grid[y][x]]?.name);
+    // o chão (tiles, bordas e manchas) é "assado" numa imagem só: sem frestas entre tiles quando a câmera anda
+    const groundParts: Phaser.GameObjects.GameObject[] = [];
+    const edgeParts: Phaser.GameObjects.GameObject[] = [];
     grid.forEach((row, y) =>
       [...row].forEach((ch, x) => {
         const name = TILES[ch].name;
@@ -280,18 +283,20 @@ export class WorldScene extends BaseScene {
         const tile = this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, tileTexture(this, theme, name, variant)).setDisplaySize(TILE, TILE).setDepth(0);
         // chão e estrada podem ser espelhados: ainda menos repetição
         if (name === 'ground' || name === 'path' || name === 'tallgrass') tile.setFlip(tileHash(x, y, 1) < 0.5, tileHash(x, y, 2) < 0.5);
+        groundParts.push(tile);
         if (name === 'path') {
           // borda irregular onde a estrada encontra o chão
           const sides: [number, number, number][] = [[0, -1, 0], [0, 1, 180], [-1, 0, -90], [1, 0, 90]];
           for (const [dx, dy, angle] of sides) {
             const n = nameAt(x + dx, y + dy);
             if (!n || n === 'path' || n === 'water') continue;
-            this.add
-              .image(x * TILE + TILE / 2 + (dx * TILE) / 2, y * TILE + TILE / 2 + (dy * TILE) / 2, pathEdgeTexture(this, theme, Math.floor(tileHash(x, y, 3 + angle) * 3)))
-              .setOrigin(0.5, 0)
-              .setDisplaySize(TILE + 6, 9)
-              .setAngle(angle)
-              .setDepth(0.6);
+            edgeParts.push(
+              this.add
+                .image(x * TILE + TILE / 2 + (dx * TILE) / 2, y * TILE + TILE / 2 + (dy * TILE) / 2, pathEdgeTexture(this, theme, Math.floor(tileHash(x, y, 3 + angle) * 3)))
+                .setOrigin(0.5, 0)
+                .setDisplaySize(TILE + 6, 9)
+                .setAngle(angle),
+            );
           }
         }
         if (name === 'tallgrass') {
@@ -324,13 +329,13 @@ export class WorldScene extends BaseScene {
       }),
     );
     // chão mais escuro e arredondado sob as moitas de mato alto (sem cantos quadrados)
-    const under = this.add.graphics().setDepth(0.55);
+    const under = this.add.graphics();
     for (const [ring, t] of [[25, 0.3], [21, 0.5]] as const) {
       under.fillStyle(blend(theme.ground, Phaser.Display.Color.ValueToColor(theme.tallgrass).darken(25).color, t));
       grid.forEach((row, y) => [...row].forEach((ch, x) => TILES[ch].name === 'tallgrass' && under.fillCircle(x * TILE + TILE / 2 + (tileHash(x, y, 20) - 0.5) * 6, y * TILE + TILE / 2 + 2, ring + tileHash(x, y, 21) * 4)));
     }
     // manchas grandes e suaves por cima do chão: quebram o desenho em grade
-    const patches = this.add.graphics().setDepth(0.5);
+    const patches = this.add.graphics();
     const soft = theme.ground > 0xc00000; // chão claro (areia/neve): manchas bem discretas
     const count = Math.round((W * H) / 3);
     for (let i = 0; i < count; i++) {
@@ -339,6 +344,7 @@ export class WorldScene extends BaseScene {
       const light = tileHash(i, 17, 11) < 0.5;
       patches.fillStyle(light ? 0xfff6c2 : 0x0b3d0b, (light ? 0.06 : 0.07) * (soft ? 0.4 : 1)).fillEllipse(px, py, 40 + tileHash(i, 19, 12) * 90, 26 + tileHash(i, 23, 13) * 60);
     }
+    this.bakeGround([...groundParts, patches, under, ...edgeParts], W * TILE, H * TILE);
     for (const b of this.map.buildings) {
       this.add
         .image(b.x * TILE, b.y * TILE, buildingTexture(this, b.kind, b.w, b.h))
@@ -367,6 +373,19 @@ export class WorldScene extends BaseScene {
       this.npcs.push(npc);
       this.addActor(sprite, 220);
     }
+  }
+
+  /**
+   * Junta as partes do chão numa única textura (RenderTexture), na resolução em que a tela mostra o mapa.
+   * Tiles separados deixam frestas de 1 pixel quando a câmera com zoom para entre dois pixels.
+   */
+  private bakeGround(parts: Phaser.GameObjects.GameObject[], w: number, h: number): void {
+    const maxTex = 4096;
+    const S = Math.max(1, Math.floor(Math.min(TEXTURE_SCALE, Math.ceil(RENDER_SCALE * WORLD_ZOOM), maxTex / w, maxTex / h)));
+    const bake = this.add.container(0, 0, parts).setScale(S);
+    const rt = this.add.renderTexture(0, 0, w * S, h * S).setOrigin(0).setScale(1 / S).setDepth(0);
+    rt.draw(bake);
+    bake.destroy();
   }
 
   private buildHud(): void {
