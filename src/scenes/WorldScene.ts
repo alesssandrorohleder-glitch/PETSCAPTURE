@@ -17,7 +17,7 @@ import type { BattleData } from './BattleScene';
 import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
 import { getSpecies } from '../data/monsters';
 import { WANDERERS, wandererFlag, type WandererDef } from '../data/wanderers';
-import { buildingTexture, fitInto, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
+import { buildingTexture, fitInto, monsterTexture, overworldSprite, signTexture, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
@@ -68,6 +68,9 @@ export class WorldScene extends BaseScene {
   private map!: MapDef;
   private st!: PlayerState;
   private player!: Phaser.GameObjects.Image;
+  /** pet que acompanha o jogador (o primeiro da equipe que ainda pode lutar) */
+  private pet?: Phaser.GameObjects.Image;
+  private petTile = { x: 0, y: 0 };
   private look!: TrainerData['look'];
   private controls!: Controls;
   private dialog!: DialogBox;
@@ -96,6 +99,8 @@ export class WorldScene extends BaseScene {
     this.player = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1);
     this.setFacing(this.st.facing);
     this.placePlayer();
+    this.pet = undefined;
+    this.createPet();
     this.setupCameras();
 
     this.controls = new Controls(this);
@@ -308,6 +313,58 @@ export class WorldScene extends BaseScene {
     this.applySprite(this.player, this.st.trainerId, this.look, f);
   }
 
+  // ------------------------------------------------------------------ pet acompanhante
+  private followerSpecies(): string | undefined {
+    if (!Settings.get().petFollow) return undefined;
+    return (this.st.party.find((m) => m.hp > 0) ?? this.st.party[0])?.species;
+  }
+
+  /** Cria o pet atrás do jogador (ou num tile livre ao lado). Chamado antes das câmeras ou com addToWorld. */
+  private createPet(): void {
+    const species = this.followerSpecies();
+    if (!species) return;
+    const [dx, dy] = DELTA[this.st.facing];
+    const spots: [number, number][] = [[-dx, -dy], [-1, 0], [1, 0], [0, 1], [0, -1]];
+    const free = spots.map(([ox, oy]) => ({ x: this.st.x + ox, y: this.st.y + oy })).find((p) => !this.blocked(p.x, p.y) && !this.map.warps.some((w) => w.x === p.x && w.y === p.y));
+    this.petTile = free ?? { x: this.st.x, y: this.st.y };
+    this.pet = this.add.image(0, 0, monsterTexture(this, species)).setOrigin(0.5, 1);
+    fitInto(this.pet, TILE * 1.3, TILE * 1.3);
+    this.placePet();
+    if (this.petTile.x !== this.st.x) this.pet.setFlipX(this.petTile.x < this.st.x);
+  }
+
+  private placePet(): void {
+    if (!this.pet) return;
+    this.pet.setPosition(this.petTile.x * TILE + TILE / 2, (this.petTile.y + 1) * TILE - 2).setDepth(this.petTile.y * TILE + 2);
+  }
+
+  /** Liga/desliga o pet na hora (menu de pausa). */
+  private refreshPet(): void {
+    this.pet?.destroy();
+    this.pet = undefined;
+    if (!this.followerSpecies()) return;
+    this.createPet();
+    if (this.pet) this.addToWorld(this.pet);
+  }
+
+  /** O pet vai para o tile que o jogador acabou de deixar, com um pulinho. */
+  private movePet(toX: number, toY: number): void {
+    const pet = this.pet;
+    if (!pet) return;
+    if (toX !== this.petTile.x) pet.setFlipX(toX > this.petTile.x); // a arte olha para a esquerda
+    this.petTile = { x: toX, y: toY };
+    this.tweens.killTweensOf(pet);
+    pet.setDepth(Math.max(toY * TILE + 2, pet.depth));
+    this.tweens.add({
+      targets: pet,
+      x: toX * TILE + TILE / 2,
+      y: (toY + 1) * TILE - 2,
+      duration: STEP_MS,
+      onComplete: () => pet.setDepth(toY * TILE + 2),
+    });
+    this.tweens.add({ targets: pet, scaleY: pet.scaleY * 0.9, duration: STEP_MS / 2, yoyo: true });
+  }
+
   // ------------------------------------------------------------------ colisão
   private buildingAt(x: number, y: number): BuildingDef | undefined {
     return this.map.buildings.find((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
@@ -449,6 +506,7 @@ export class WorldScene extends BaseScene {
     if (this.blocked(nx, ny)) return;
 
     this.moving = true;
+    this.movePet(this.st.x, this.st.y);
     this.st.x = nx;
     this.st.y = ny;
     this.player.setDepth(ny * TILE + 3);
@@ -594,10 +652,19 @@ export class WorldScene extends BaseScene {
             this.toggleMenu();
           },
         },
+        {
+          label: `Pet ao lado: ${Settings.get().petFollow ? 'Ligado' : 'Desligado'}`,
+          onSelect: () => {
+            Settings.update({ petFollow: !Settings.get().petFollow });
+            this.refreshPet();
+            this.toggleMenu();
+            this.toggleMenu();
+          },
+        },
         { label: 'Menu Inicial', onSelect: () => this.goTo(SCENES.Menu) },
         { label: 'Fechar', onSelect: () => this.toggleMenu() },
       ],
-      { x, y: 30, itemWidth: 220, itemHeight: 52, gap: 8 },
+      { x, y: 26, itemWidth: 220, itemHeight: 46, gap: 6 },
     );
     box.add(list);
     fixToCamera(box);

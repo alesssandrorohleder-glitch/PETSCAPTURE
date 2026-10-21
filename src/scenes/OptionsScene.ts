@@ -22,6 +22,14 @@ export class OptionsScene extends BaseScene {
           menu.setItems(items());
         },
       },
+      {
+        label: `Pet ao lado: ${Settings.get().petFollow ? 'Ligado' : 'Desligado'}`,
+        hint: 'o primeiro pet da equipe anda com você',
+        onSelect: () => {
+          Settings.update({ petFollow: !Settings.get().petFollow });
+          menu.setItems(items());
+        },
+      },
       { label: 'Privacidade e cookies', onSelect: () => showConsentBanner(true) },
       { label: 'Política de Privacidade', onSelect: () => window.open('./privacy.html', '_blank', 'noopener') },
       { label: 'Voltar', onSelect: back },
