@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { AudioManager } from './systems/AudioManager';
 import { GAME_HEIGHT, GAME_WIDTH, RENDER_SCALE, UI } from './config';
 import { BootScene } from './scenes/BootScene';
 import { PreloadScene } from './scenes/PreloadScene';
@@ -74,6 +75,7 @@ setInterval(() => {
 // Anúncios: pausa som e controles enquanto um anúncio aparece; aviso de cookies na 1ª visita.
 Object.assign(window, { __ads: AdManager, __cloud: CloudSave }); // para testes
 // anúncios e janela de conta pausam som e controles do jogo
+AudioManager.unlockOnGesture(game);
 GamePause.init((paused) => {
   game.sound.mute = paused || !Settings.get().soundOn;
   game.input.enabled = !paused;

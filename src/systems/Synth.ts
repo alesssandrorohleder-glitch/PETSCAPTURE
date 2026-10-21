@@ -63,7 +63,11 @@ export function playSynth(game: Phaser.Game, key: string): void {
   const mgr = game.sound as Phaser.Sound.WebAudioSoundManager;
   if (!make || game.sound.mute || !('context' in mgr) || !mgr.context) return;
   try {
-    if (mgr.context.state === 'suspended') return; // o navegador só libera som depois de um toque/tecla
+    if (mgr.context.state !== 'running') {
+      // o navegador só libera som depois de um toque/tecla
+      void mgr.context.resume().catch(() => {});
+      return;
+    }
     make(mgr.context, mgr.destination ?? mgr.context.destination);
   } catch {
     /* som nunca derruba o jogo */

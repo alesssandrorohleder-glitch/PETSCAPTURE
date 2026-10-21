@@ -17,7 +17,7 @@ import type { BattleData } from './BattleScene';
 import { fill, FRIEND_BATTLES, INTRO, RIVAL, storyNpcs, TRIGGERS, type TrainerBattleDef } from '../data/story';
 import { getSpecies } from '../data/monsters';
 import { WANDERERS, wandererFlag, type WandererDef } from '../data/wanderers';
-import { buildingTexture, fitInto, monsterTexture, overworldSprite, pathEdgeTexture, shadowTexture, signTexture, TALLGRASS_SIZE, tallGrassTexture, TILE_VARIANTS, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
+import { buildingTexture, fitInto, glintTexture, monsterTexture, overworldSprite, pathEdgeTexture, rippleTexture, shadowTexture, signTexture, TALLGRASS_SIZE, tallGrassTexture, TILE_VARIANTS, tileTexture, TREE_SIZE, treeTexture } from '../systems/Placeholders';
 import { Settings } from '../systems/Settings';
 import { DialogBox } from '../ui/DialogBox';
 import { MenuList } from '../ui/MenuList';
@@ -39,7 +39,13 @@ export interface AfterBattle {
 
 export interface WorldData {
   after?: AfterBattle;
+  /** id do treinador de quem o jogador acabou de desistir */
+  fled?: string;
 }
+
+/** Quando o jogador desistiu de cada andarilho (ms): ele espera um pouco antes de desafiar de novo. */
+const fledAt = new Map<string, number>();
+const FLEE_COOLDOWN_MS = 45000;
 
 interface NpcObj {
   def: NpcDef;
@@ -145,6 +151,7 @@ export class WorldScene extends BaseScene {
 
     // salvamento automático: ao entrar no mapa e a cada 30 s
     if (data?.after) this.st.flags[data.after.flag] = true;
+    if (data?.fled) fledAt.set(data.fled, Date.now());
     SaveManager.save();
     this.time.addEvent({ delay: 30000, loop: true, callback: () => SaveManager.save() });
 
@@ -279,8 +286,9 @@ export class WorldScene extends BaseScene {
     grid.forEach((row, y) =>
       [...row].forEach((ch, x) => {
         const name = TILES[ch].name;
-        const variant = name === 'water' ? 0 : Math.floor(tileHash(x, y) * TILE_VARIANTS);
-        const tile = this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, tileTexture(this, theme, name, variant)).setDisplaySize(TILE, TILE).setDepth(0);
+        const variant = Math.floor(tileHash(x, y) * TILE_VARIANTS);
+        // embaixo da água vai chão comum: o lago é desenhado por cima, com contorno arredondado (drawLakes)
+        const tile = this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, tileTexture(this, theme, name === 'water' ? 'ground' : name, variant)).setDisplaySize(TILE, TILE).setDepth(0);
         // chão e estrada podem ser espelhados: ainda menos repetição
         if (name === 'ground' || name === 'path' || name === 'tallgrass') tile.setFlip(tileHash(x, y, 1) < 0.5, tileHash(x, y, 2) < 0.5);
         groundParts.push(tile);
@@ -336,7 +344,8 @@ export class WorldScene extends BaseScene {
     }
     // manchas grandes e suaves por cima do chão: quebram o desenho em grade
     const patches = this.add.graphics();
-    const soft = theme.ground > 0xc00000; // chão claro (areia/neve): manchas bem discretas
+    const lum = Phaser.Display.Color.ValueToColor(theme.ground).v;
+    const soft = lum > 0.8 || lum < 0.4; // chão muito claro (areia/neve) ou escuro (vulcão): manchas bem discretas
     const count = Math.round((W * H) / 3);
     for (let i = 0; i < count; i++) {
       const px = tileHash(i, 11, 9) * W * TILE;
@@ -344,7 +353,8 @@ export class WorldScene extends BaseScene {
       const light = tileHash(i, 17, 11) < 0.5;
       patches.fillStyle(light ? 0xfff6c2 : 0x0b3d0b, (light ? 0.06 : 0.07) * (soft ? 0.4 : 1)).fillEllipse(px, py, 40 + tileHash(i, 19, 12) * 90, 26 + tileHash(i, 23, 13) * 60);
     }
-    this.bakeGround([...groundParts, patches, under, ...edgeParts], W * TILE, H * TILE);
+    const lake = this.drawLakes(nameAt, W, H);
+    this.bakeGround([...groundParts, patches, under, lake, ...edgeParts], W * TILE, H * TILE);
     for (const b of this.map.buildings) {
       this.add
         .image(b.x * TILE, b.y * TILE, buildingTexture(this, b.kind, b.w, b.h))
@@ -373,6 +383,140 @@ export class WorldScene extends BaseScene {
       this.npcs.push(npc);
       this.addActor(sprite, 220);
     }
+  }
+
+  /**
+   * Lagos: mais escuros no fundo, cantos de margem arredondados e brilhos/ondinhas animados.
+   * Devolve os desenhos que vão para a imagem do chão.
+   */
+  private drawLakes(nameAt: (x: number, y: number) => string | undefined, W: number, H: number) {
+    const { theme } = this.map;
+    const isWater = (x: number, y: number) => nameAt(x, y) === 'water';
+    // distância até a margem (água mais funda no meio)
+    const dist = new Map<string, number>();
+    const queue: [number, number][] = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (!isWater(x, y)) continue;
+        const shore = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => nameAt(x + dx, y + dy) !== undefined && !isWater(x + dx, y + dy));
+        if (shore) {
+          dist.set(`${x},${y}`, 1);
+          queue.push([x, y]);
+        }
+      }
+    }
+    while (queue.length) {
+      const [x, y] = queue.shift()!;
+      const d = dist.get(`${x},${y}`)!;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const k = `${x + dx},${y + dy}`;
+        if (isWater(x + dx, y + dy) && !dist.has(k)) {
+          dist.set(k, d + 1);
+          queue.push([x + dx, y + dy]);
+        }
+      }
+    }
+    const lake = this.add.graphics();
+    const lava = theme.id === 'vulcao';
+    const waterTiles = [...dist.keys()].map((k) => k.split(',').map(Number) as [number, number]);
+    /**
+     * Preenche a forma do lago com vários círculos de tamanho levemente sorteado (contorno orgânico).
+     * `r` = raio base: quanto menor, mais para dentro da água fica a camada.
+     */
+    const offs = [-10, -5, 0, 5, 10];
+    const shape = (r: number, color: number, alpha = 1) => {
+      lake.fillStyle(color, alpha);
+      for (const [x, y] of waterTiles) {
+        const X = x * TILE + TILE / 2;
+        const Y = y * TILE + TILE / 2;
+        const inner = [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => isWater(x + dx, y + dy)));
+        if (inner) {
+          lake.fillRect(X - TILE / 2 - 1, Y - TILE / 2 - 1, TILE + 2, TILE + 2);
+          continue;
+        }
+        for (const oy of offs) {
+          for (const ox of offs) {
+            const px = X + ox;
+            const py = Y + oy;
+            lake.fillCircle(px, py, r + (tileHash(px, py, 60) - 0.5) * 3.2);
+          }
+        }
+      }
+    };
+    const g0 = theme.ground;
+    shape(14, lava ? 0x3d3431 : blend(g0, 0x3b2a1a, 0.3), 0.85); // terra úmida
+    shape(11.5, lava ? 0x2b2522 : blend(g0, 0x2b1d10, 0.55)); // barro
+    shape(9.6, lava ? 0xffd166 : 0xffffff, lava ? 0.9 : 0.6); // espuma / brilho da lava
+    shape(8.8, Phaser.Display.Color.ValueToColor(theme.water).lighten(12).color); // água rasa
+    shape(7.2, theme.water);
+    // fundo: escurece aos poucos longe da margem
+    for (const [k, d] of dist) {
+      if (d < 2) continue;
+      const [x, y] = k.split(',').map(Number);
+      for (let i = 0; i < 8; i++) lake.fillStyle(lava ? 0xffb703 : 0x001233, (lava ? 0.012 : 0.016) * Math.min(d - 1, 3)).fillCircle(x * TILE + TILE / 2, y * TILE + TILE / 2, 14 + i * 4);
+    }
+    if (lava) {
+      // lava: placas de crosta escura com veios brilhando entre elas
+      for (const [x, y] of waterTiles) {
+        for (let i = 0; i < 3; i++) {
+          const px = x * TILE + 6 + tileHash(x, y, 70 + i) * 20;
+          const py = y * TILE + 6 + tileHash(x, y, 73 + i) * 20;
+          const rw = 6 + tileHash(x, y, 76 + i) * 7;
+          lake.fillStyle(0x6a1a00, 0.55).fillEllipse(px, py, rw * 1.4, rw);
+          lake.fillStyle(0x3a0f00, 0.45).fillEllipse(px + 1, py + 1, rw * 0.8, rw * 0.55);
+        }
+        if (tileHash(x, y, 81) < 0.6) {
+          lake.lineStyle(1.1, 0xffe08a, 0.75).beginPath();
+          let vx = x * TILE + 4 + tileHash(x, y, 80) * 22;
+          let vy = y * TILE + 4 + tileHash(x, y, 82) * 6;
+          lake.moveTo(vx, vy);
+          for (let i = 0; i < 3; i++) {
+            vx += (tileHash(x, y, 83 + i) - 0.5) * 14;
+            vy += 5 + tileHash(x, y, 86 + i) * 5;
+            lake.lineTo(vx, vy);
+          }
+          lake.strokePath();
+        }
+      }
+    }
+    // reflexos parados
+    for (const [x, y] of waterTiles) {
+      for (let i = 0; i < 2; i++) {
+        const len = 2.5 + tileHash(x, y, 50 + i) * 3.5;
+        const px = x * TILE + 9 + tileHash(x, y, 52 + i) * 14;
+        const py = y * TILE + 9 + tileHash(x, y, 54 + i) * 14;
+        lake.lineStyle(1, Phaser.Display.Color.ValueToColor(theme.water).lighten(25).color, 0.6).beginPath().arc(px, py + len, len, Math.PI * 1.25, Math.PI * 1.75).strokePath();
+      }
+    }
+    // brilhos piscando e ondinhas (animados, fora da imagem do chão)
+    const tiles = waterTiles;
+    const tint = lava ? 0xffd166 : 0xffffff;
+    for (const [x, y] of tiles) {
+      if (tileHash(x, y, 40) > 0.35) continue;
+      const glint = this.add
+        .image(x * TILE + 6 + tileHash(x, y, 41) * 20, y * TILE + 6 + tileHash(x, y, 42) * 20, glintTexture(this))
+        .setDisplaySize(5, 5)
+        .setTint(tint)
+        .setAlpha(0)
+        .setDepth(0.9);
+      this.tweens.add({ targets: glint, alpha: { from: 0, to: 0.85 }, duration: 500, yoyo: true, repeat: -1, repeatDelay: 1500 + tileHash(x, y, 43) * 2500, delay: tileHash(x, y, 44) * 3000 });
+    }
+    if (tiles.length) {
+      this.time.addEvent({
+        delay: 700,
+        loop: true,
+        callback: () => {
+          const [x, y] = tiles[Math.floor(Math.random() * tiles.length)];
+          const ring = this.addToWorld(this.add.image(x * TILE + 6 + Math.random() * 20, y * TILE + 6 + Math.random() * 20, rippleTexture(this)))
+            .setDisplaySize(6, 3)
+            .setTint(tint)
+            .setAlpha(0.6)
+            .setDepth(0.9);
+          this.tweens.add({ targets: ring, displayWidth: 22, displayHeight: 10, alpha: 0, duration: 1600, ease: 'Sine.out', onComplete: () => ring.destroy() });
+        },
+      });
+    }
+    return lake;
   }
 
   /**
@@ -595,6 +739,7 @@ export class WorldScene extends BaseScene {
   private checkSight(): boolean {
     for (const n of this.npcs) {
       if (!n.wander || this.st.flags[wandererFlag(n.wander.id)]) continue;
+      if (Date.now() - (fledAt.get(n.wander.id) ?? -Infinity) < FLEE_COOLDOWN_MS) continue;
       const [dx, dy] = DELTA[n.facing];
       for (let i = 1; i <= SIGHT; i++) {
         const x = n.x + dx * i;

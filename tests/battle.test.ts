@@ -92,11 +92,12 @@ describe('BattleEngine', () => {
     expect(f2 && f2.t === 'move' && f2.side).toBe('player');
   });
 
-  it('não foge de treinador', () => {
-    const b = new BattleEngine({ party: [createMonster('ignis', 5)], enemies: [createMonster('umbrel', 5)], kind: 'trainer', rng: seq(0) });
+  it('desistir de treinador sempre funciona e não dá prêmio', () => {
+    const b = new BattleEngine({ party: [createMonster('ignis', 5)], enemies: [createMonster('umbrel', 50)], kind: 'trainer', rng: seq(0) });
     const ev = b.turn({ kind: 'run' });
-    expect(b.over).toBe(false);
-    expect(ev.some((e) => e.t === 'msg' && e.text.includes('Não dá para fugir'))).toBe(true);
+    expect(b.outcome).toBe('run');
+    expect(ev.some((e) => e.t === 'msg' && e.text.includes('desistiu'))).toBe(true);
+    expect(ev.some((e) => e.t === 'move')).toBe(false); // o inimigo não ataca ao desistir
   });
 
   it('foge de selvagem quando é mais rápido', () => {

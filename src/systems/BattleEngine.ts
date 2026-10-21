@@ -299,7 +299,9 @@ export class BattleEngine {
 
   private tryRun(ev: BattleEvent[]): boolean {
     if (this.kind === 'trainer') {
-      ev.push({ t: 'msg', text: 'Não dá para fugir de uma batalha contra treinador!' });
+      // contra treinador não há sorteio: o jogador desiste (sem prêmio)
+      ev.push({ t: 'msg', text: 'Você desistiu da batalha e saiu de fininho!' });
+      this.finish('run', ev);
       return true;
     }
     this.runAttempts++;

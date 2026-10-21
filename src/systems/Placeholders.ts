@@ -143,21 +143,74 @@ export function tileTexture(scene: Phaser.Scene, theme: BiomeTheme, name: string
         ground();
         g.fillStyle(shade(theme.ground, 0.8), 0.8).fillEllipse(16, 26, 26, 10);
         break;
-      case 'water':
+      case 'water': {
+        // água lisa com reflexos curtos (repetidos nas bordas: emenda sem costura)
         g.fillStyle(theme.water).fillRect(0, 0, TILE, TILE);
-
-        g.lineStyle(1.5, shade(theme.water, 1.35), 0.8);
-        g.beginPath().arc(4 + r() * 10, 6 + r() * 8, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
-        g.beginPath().arc(16 + r() * 10, 18 + r() * 8, 5, Math.PI * 1.1, Math.PI * 1.9).strokePath();
+        for (let i = 0; i < 4; i++) {
+          const col = shade(theme.water, r() < 0.5 ? 0.97 : 1.04);
+          const rad = 7 + r() * 8;
+          wrapped(r() * TILE, r() * TILE, rad, (x, y) => g.fillStyle(col, 0.6).fillCircle(x, y, rad));
+        }
+        for (let i = 0; i < 6; i++) {
+          const len = 2.5 + r() * 4;
+          const a0 = 1.25 + r() * 0.1;
+          wrapped(r() * TILE, r() * TILE, 10, (x, y) => {
+            g.lineStyle(0.9, shade(theme.water, 1.3), 0.55).beginPath().arc(x, y + len, len, Math.PI * a0, Math.PI * (a0 + 0.45)).strokePath();
+          });
+        }
         break;
-      case 'rock':
+      }
+      case 'rock': {
         ground();
-        g.fillStyle(0x000000, 0.18).fillEllipse(16, 25, 28, 9);
-        g.fillStyle(shade(theme.rock, 0.8)).fillEllipse(16, 19, 26, 19);
-        g.fillStyle(theme.rock).fillEllipse(15, 17, 23, 16);
-        g.fillStyle(shade(theme.rock, 1.3)).fillEllipse(11, 12, 8, 4.5);
-        g.lineStyle(1, shade(theme.rock, 0.65), 0.8).lineBetween(17, 13, 20, 20);
+        const rc = theme.rock;
+        const V2 = Phaser.Math.Vector2;
+        // sombra difusa no chão
+        g.fillStyle(0x000000, 0.2).fillEllipse(16.5, 25.5, 31, 10);
+        g.fillStyle(0x000000, 0.18).fillEllipse(17, 25.5, 23, 6);
+        // contorno irregular de rocha
+        const cx = 15.5 + r();
+        const cy = 17;
+        const rx = 12 + r() * 2;
+        const ry = 9 + r() * 2;
+        const pts: Phaser.Math.Vector2[] = [];
+        for (let k = 0; k < 11; k++) {
+          const a = (k / 11) * Math.PI * 2;
+          const rr = 0.8 + r() * 0.24;
+          pts.push(new V2(cx + Math.cos(a) * rx * rr, cy + Math.sin(a) * ry * rr - (Math.sin(a) < 0 ? r() * 2.5 : 0)));
+        }
+        const scaled = (k: number, dx: number, dy: number) => pts.map((p) => new V2(cx + (p.x - cx) * k + dx, cy + (p.y - cy) * k + dy));
+        g.fillStyle(shade(rc, 0.58)).fillPoints(pts, true); // lado na sombra
+        g.fillStyle(shade(rc, 0.9)).fillPoints(scaled(0.9, -0.8, -1.4), true); // corpo iluminado
+        // face de cima (mais clara), só a metade superior
+        const top = scaled(0.7, -1.4, -3.2).filter((p) => p.y < cy - 1);
+        if (top.length > 2) g.fillStyle(shade(rc, 1.12)).fillPoints(top, true);
+        // arestas e rachaduras
+        g.lineStyle(0.8, shade(rc, 0.5), 0.75);
+        g.lineBetween(cx - 2, cy - 5, cx + 3 + r() * 3, cy + 6);
+        g.lineBetween(cx - 2, cy - 5, cx - 8, cy + 3);
+        const kx = cx + 3 + r() * 4;
+        g.lineStyle(0.6, shade(rc, 0.45), 0.8).beginPath().moveTo(kx, cy - 6).lineTo(kx + 1.5, cy - 3).lineTo(kx - 0.5, cy - 1).lineTo(kx + 1, cy + 2).strokePath();
+        // granulado
+        for (let i = 0; i < 16; i++) {
+          const p = pts[Math.floor(r() * pts.length)];
+          const t = 0.2 + r() * 0.7;
+          g.fillStyle(shade(rc, 0.7 + r() * 0.6), 0.85).fillCircle(cx + (p.x - cx) * t, cy + (p.y - cy) * t - 1, 0.35 + r() * 0.35);
+        }
+        // brilho
+        g.fillStyle(0xffffff, 0.22).fillEllipse(cx - 4, cy - 5.5, 5, 2);
+        // musgo nos mapas verdes
+        if (GRASSY.has(theme.id)) {
+          for (let i = 0; i < 4; i++) g.fillStyle(shade(theme.tallgrass, 0.9 + r() * 0.3), 0.85).fillCircle(cx - 6 + r() * 7, cy - 6 + r() * 3, 1.2 + r() * 1.3);
+        }
+        // pedrinhas em volta
+        for (let i = 0; i < 2; i++) {
+          const px = r() < 0.5 ? 3 + r() * 4 : 25 + r() * 4;
+          const py = 24 + r() * 4;
+          g.fillStyle(shade(rc, 0.6)).fillEllipse(px + 0.3, py + 0.4, 3.2, 2.2);
+          g.fillStyle(shade(rc, 1)).fillEllipse(px, py, 2.8, 1.8);
+        }
         break;
+      }
       case 'flowers':
         ground();
         for (let i = 0; i < 6; i++) {
@@ -233,6 +286,21 @@ export function pathEdgeTexture(scene: Phaser.Scene, theme: BiomeTheme, variant 
     } else {
       for (let i = 0; i < 10; i++) g.fillStyle(shade(theme.ground, 0.85 + r() * 0.25)).fillCircle(r() * w, 3 + r() * 3, 0.8);
     }
+  });
+}
+
+/** Brilho que pisca na água. */
+export function glintTexture(scene: Phaser.Scene): string {
+  return ensure(scene, 'ph-glint', 8, 8, (g) => {
+    g.fillStyle(0xffffff, 0.9).fillTriangle(4, 0, 5, 4, 3, 4).fillTriangle(4, 8, 5, 4, 3, 4).fillTriangle(0, 4, 4, 3, 4, 5).fillTriangle(8, 4, 4, 3, 4, 5);
+    g.fillStyle(0xffffff).fillCircle(4, 4, 1);
+  });
+}
+
+/** Ondinha (anel) que se espalha na água. */
+export function rippleTexture(scene: Phaser.Scene): string {
+  return ensure(scene, 'ph-ripple', 24, 12, (g) => {
+    g.lineStyle(1.2, 0xffffff, 0.8).strokeEllipse(12, 6, 22, 10);
   });
 }
 

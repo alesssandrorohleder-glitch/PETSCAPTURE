@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { WorldData } from './WorldScene';
 import { GAME_HEIGHT, GAME_WIDTH, SCENES, UI } from '../config';
 import { ELEMENTS } from '../data/elements';
 import { getItem, ITEMS } from '../data/items';
@@ -219,10 +220,21 @@ export class BattleScene extends BaseScene {
         { label: 'Lutar', onSelect: () => this.showMoveMenu() },
         { label: 'Equipe', onSelect: () => this.showPartyMenu(false) },
         { label: 'Item', onSelect: () => this.showItemMenu() },
-        { label: 'Fugir', onSelect: () => void this.act({ kind: 'run' }) },
+        this.data_.kind === 'trainer'
+          ? { label: 'Desistir', onSelect: () => void this.giveUp() }
+          : { label: 'Fugir', onSelect: () => void this.act({ kind: 'run' }) },
       ],
       { x: 576, y: MSG_Y + 6, columns: 2, itemWidth: 170, itemHeight: 54, gap: 10 },
     );
+  }
+
+  /** Sair da luta contra treinador (com confirmação: não ganha prêmio). */
+  private async giveUp(): Promise<void> {
+    this.clearMenus();
+    const name = this.data_.enemyName ?? 'o treinador';
+    const i = await this.offer(`Desistir da luta contra ${name}? Você não ganha o prêmio, mas pode lutar de novo depois.`, ['Continuar lutando', 'Desistir e sair']);
+    if (i === 1) await this.act({ kind: 'run' });
+    else this.showMainMenu();
   }
 
   private showMoveMenu(): void {
@@ -566,7 +578,8 @@ export class BattleScene extends BaseScene {
       Object.assign(st, { mapId: st.respawn.mapId, x: st.respawn.x, y: st.respawn.y, facing: 'down' });
       this.goTo(SCENES.GameOver, { victory: false });
     } else {
-      this.goTo(SCENES.World);
+      // fugiu/desistiu: o treinador andarilho dá um tempo antes de desafiar de novo
+      this.goTo(SCENES.World, { fled: this.data_.trainer?.id } satisfies WorldData);
     }
   }
 }

@@ -158,6 +158,10 @@ e remova o fundo (ou peça para mim). Para o lado do jogador na batalha, gere a 
 
 ## Áudio
 
+Sem nenhum arquivo, o jogo já tem som: as músicas de cada mapa/batalha e os efeitos são gerados na hora
+(`src/systems/MusicSynth.ts` e `src/systems/Synth.ts`). Um arquivo seu com o mesmo nome substitui o som gerado.
+No celular, o som começa depois do primeiro toque na tela (regra dos navegadores) e não toca com o aparelho no silencioso (iPhone).
+
 Coloque arquivos `.mp3` ou `.ogg` em `public/assets/audio/`. Enquanto um efeito sonoro não existir, o jogo toca
 um som sintetizado simples; músicas sem arquivo ficam em silêncio. O botão de som (Opções / menu) desliga tudo.
 
